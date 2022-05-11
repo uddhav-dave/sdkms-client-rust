@@ -36,18 +36,6 @@ pub struct ExportSobjectComponentsRequest {
     pub description: Option<String>
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Default)]
-pub struct FilterList {
-    #[serde(flatten)]
-    pub head: Box<CustomMetadata>
-}
-
-impl UrlEncode for FilterList {
-    fn url_encode(&self, m: &mut HashMap<String, String>) {
-        self.head.url_encode(m);
-    }
-}
-
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct GetSobjectParams {
     pub view: SobjectEncoding,
@@ -111,7 +99,7 @@ pub struct ListSobjectsParams {
     pub show_value: bool,
     pub show_pub_key: bool,
     #[serde(default)]
-    pub filter: Option<FilterList>
+    pub filter: Option<String>
 }
 
 impl UrlEncode for ListSobjectsParams {
@@ -153,7 +141,7 @@ impl UrlEncode for ListSobjectsParams {
         m.insert("show_value".to_string(), self.show_value.to_string());
         m.insert("show_pub_key".to_string(), self.show_pub_key.to_string());
         if let Some(ref v) = self.filter {
-            m.insert("filter".to_string(), v.head.encode());
+            m.insert("filter".to_string(), v.to_string());
         }
     }
 }
@@ -401,8 +389,8 @@ impl Operation for OperationActivateSobject {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn activate_sobject(&self, id: &Uuid) -> Result<()> {
-        self.execute::<OperationActivateSobject>(&(), (id,), None)
+    pub async fn activate_sobject(&self, id: &Uuid) -> Result<()> {
+        self.execute::<OperationActivateSobject>(&(), (id,), None).await
     }
 }
 
@@ -423,13 +411,13 @@ impl Operation for OperationBatchSign {
 }
 
 impl SdkmsClient {
-    pub fn batch_sign(&self, req: &Vec<SignRequest>) -> Result<Vec<BatchResponseItem<SignResponse>>> {
-        self.execute::<OperationBatchSign>(req, (), None)
+    pub async fn batch_sign(&self, req: &Vec<SignRequest>) -> Result<Vec<BatchResponseItem<SignResponse>>> {
+        self.execute::<OperationBatchSign>(req, (), None).await
     }
-    pub fn request_approval_to_batch_sign(
+    pub async fn request_approval_to_batch_sign(
         &self, req: &Vec<SignRequest>,
         description: Option<String>) -> Result<PendingApproval<OperationBatchSign>> {
-        self.request_approval::<OperationBatchSign>(req, (), None, description)
+        self.request_approval::<OperationBatchSign>(req, (), None, description).await
     }
 }
 
@@ -450,8 +438,8 @@ impl Operation for OperationBatchVerify {
 }
 
 impl SdkmsClient {
-    pub fn batch_verify(&self, req: &Vec<VerifyRequest>) -> Result<Vec<BatchResponseItem<VerifyResponse>>> {
-        self.execute::<OperationBatchVerify>(req, (), None)
+    pub async fn batch_verify(&self, req: &Vec<VerifyRequest>) -> Result<Vec<BatchResponseItem<VerifyResponse>>> {
+        self.execute::<OperationBatchVerify>(req, (), None).await
     }
 }
 
@@ -472,13 +460,13 @@ impl Operation for OperationCopySobject {
 }
 
 impl SdkmsClient {
-    pub fn copy_sobject(&self, req: &CopySobjectRequest) -> Result<Sobject> {
-        self.execute::<OperationCopySobject>(req, (), None)
+    pub async fn copy_sobject(&self, req: &CopySobjectRequest) -> Result<Sobject> {
+        self.execute::<OperationCopySobject>(req, (), None).await
     }
-    pub fn request_approval_to_copy_sobject(
+    pub async fn request_approval_to_copy_sobject(
         &self, req: &CopySobjectRequest,
         description: Option<String>) -> Result<PendingApproval<OperationCopySobject>> {
-        self.request_approval::<OperationCopySobject>(req, (), None, description)
+        self.request_approval::<OperationCopySobject>(req, (), None, description).await
     }
 }
 
@@ -499,8 +487,8 @@ impl Operation for OperationCreateSobject {
 }
 
 impl SdkmsClient {
-    pub fn create_sobject(&self, req: &SobjectRequest) -> Result<Sobject> {
-        self.execute::<OperationCreateSobject>(req, (), None)
+    pub async fn create_sobject(&self, req: &SobjectRequest) -> Result<Sobject> {
+        self.execute::<OperationCreateSobject>(req, (), None).await
     }
 }
 
@@ -521,13 +509,13 @@ impl Operation for OperationDeleteSobject {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn delete_sobject(&self, id: &Uuid) -> Result<()> {
-        self.execute::<OperationDeleteSobject>(&(), (id,), None)
+    pub async fn delete_sobject(&self, id: &Uuid) -> Result<()> {
+        self.execute::<OperationDeleteSobject>(&(), (id,), None).await
     }
-    pub fn request_approval_to_delete_sobject(
+    pub async fn request_approval_to_delete_sobject(
         &self, id: &Uuid,
         description: Option<String>) -> Result<PendingApproval<OperationDeleteSobject>> {
-        self.request_approval::<OperationDeleteSobject>(&(), (id,), None, description)
+        self.request_approval::<OperationDeleteSobject>(&(), (id,), None, description).await
     }
 }
 
@@ -548,13 +536,13 @@ impl Operation for OperationDestroySobject {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn destroy_sobject(&self, id: &Uuid) -> Result<()> {
-        self.execute::<OperationDestroySobject>(&(), (id,), None)
+    pub async fn destroy_sobject(&self, id: &Uuid) -> Result<()> {
+        self.execute::<OperationDestroySobject>(&(), (id,), None).await
     }
-    pub fn request_approval_to_destroy_sobject(
+    pub async fn request_approval_to_destroy_sobject(
         &self, id: &Uuid,
         description: Option<String>) -> Result<PendingApproval<OperationDestroySobject>> {
-        self.request_approval::<OperationDestroySobject>(&(), (id,), None, description)
+        self.request_approval::<OperationDestroySobject>(&(), (id,), None, description).await
     }
 }
 
@@ -575,8 +563,8 @@ impl Operation for OperationDigestSobject {
 }
 
 impl SdkmsClient {
-    pub fn digest_sobject(&self, req: &ObjectDigestRequest) -> Result<ObjectDigestResponse> {
-        self.execute::<OperationDigestSobject>(req, (), None)
+    pub async fn digest_sobject(&self, req: &ObjectDigestRequest) -> Result<ObjectDigestResponse> {
+        self.execute::<OperationDigestSobject>(req, (), None).await
     }
 }
 
@@ -597,13 +585,13 @@ impl Operation for OperationExportSobject {
 }
 
 impl SdkmsClient {
-    pub fn export_sobject(&self, req: &SobjectDescriptor) -> Result<Sobject> {
-        self.execute::<OperationExportSobject>(req, (), None)
+    pub async fn export_sobject(&self, req: &SobjectDescriptor) -> Result<Sobject> {
+        self.execute::<OperationExportSobject>(req, (), None).await
     }
-    pub fn request_approval_to_export_sobject(
+    pub async fn request_approval_to_export_sobject(
         &self, req: &SobjectDescriptor,
         description: Option<String>) -> Result<PendingApproval<OperationExportSobject>> {
-        self.request_approval::<OperationExportSobject>(req, (), None, description)
+        self.request_approval::<OperationExportSobject>(req, (), None, description).await
     }
 }
 
@@ -624,13 +612,13 @@ impl Operation for OperationExportSobjectComponents {
 }
 
 impl SdkmsClient {
-    pub fn export_sobject_components(&self, req: &ExportSobjectComponentsRequest) -> Result<ExportComponentsResponse> {
-        self.execute::<OperationExportSobjectComponents>(req, (), None)
+    pub async fn export_sobject_components(&self, req: &ExportSobjectComponentsRequest) -> Result<ExportComponentsResponse> {
+        self.execute::<OperationExportSobjectComponents>(req, (), None).await
     }
-    pub fn request_approval_to_export_sobject_components(
+    pub async fn request_approval_to_export_sobject_components(
         &self, req: &ExportSobjectComponentsRequest,
         description: Option<String>) -> Result<PendingApproval<OperationExportSobjectComponents>> {
-        self.request_approval::<OperationExportSobjectComponents>(req, (), None, description)
+        self.request_approval::<OperationExportSobjectComponents>(req, (), None, description).await
     }
 }
 
@@ -651,8 +639,8 @@ impl Operation for OperationGetKcv {
 }
 
 impl SdkmsClient {
-    pub fn get_kcv(&self, req: &SobjectDescriptor) -> Result<KeyCheckValueResponse> {
-        self.execute::<OperationGetKcv>(req, (), None)
+    pub async fn get_kcv(&self, req: &SobjectDescriptor) -> Result<KeyCheckValueResponse> {
+        self.execute::<OperationGetKcv>(req, (), None).await
     }
 }
 
@@ -673,8 +661,8 @@ impl Operation for OperationGetPubkey {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn get_pubkey(&self, id: &Uuid, name: &String) -> Result<HashMap<String,Blob>> {
-        self.execute::<OperationGetPubkey>(&(), (id, name,), None)
+    pub async fn get_pubkey(&self, id: &Uuid, name: &String) -> Result<HashMap<String,Blob>> {
+        self.execute::<OperationGetPubkey>(&(), (id, name,), None).await
     }
 }
 
@@ -695,8 +683,8 @@ impl Operation for OperationGetSobject {
 }
 
 impl SdkmsClient {
-    pub fn get_sobject(&self, query_params: Option<&GetSobjectParams>, req: &SobjectDescriptor) -> Result<Sobject> {
-        self.execute::<OperationGetSobject>(req, (), query_params)
+    pub async fn get_sobject(&self, query_params: Option<&GetSobjectParams>, req: &SobjectDescriptor) -> Result<Sobject> {
+        self.execute::<OperationGetSobject>(req, (), query_params).await
     }
 }
 
@@ -717,8 +705,8 @@ impl Operation for OperationImportSobject {
 }
 
 impl SdkmsClient {
-    pub fn import_sobject(&self, req: &SobjectRequest) -> Result<Sobject> {
-        self.execute::<OperationImportSobject>(req, (), None)
+    pub async fn import_sobject(&self, req: &SobjectRequest) -> Result<Sobject> {
+        self.execute::<OperationImportSobject>(req, (), None).await
     }
 }
 
@@ -739,13 +727,13 @@ impl Operation for OperationImportSobjectByComponents {
 }
 
 impl SdkmsClient {
-    pub fn import_sobject_by_components(&self, req: &ImportSobjectComponentsRequest) -> Result<Sobject> {
-        self.execute::<OperationImportSobjectByComponents>(req, (), None)
+    pub async fn import_sobject_by_components(&self, req: &ImportSobjectComponentsRequest) -> Result<Sobject> {
+        self.execute::<OperationImportSobjectByComponents>(req, (), None).await
     }
-    pub fn request_approval_to_import_sobject_by_components(
+    pub async fn request_approval_to_import_sobject_by_components(
         &self, req: &ImportSobjectComponentsRequest,
         description: Option<String>) -> Result<PendingApproval<OperationImportSobjectByComponents>> {
-        self.request_approval::<OperationImportSobjectByComponents>(req, (), None, description)
+        self.request_approval::<OperationImportSobjectByComponents>(req, (), None, description).await
     }
 }
 
@@ -766,8 +754,8 @@ impl Operation for OperationListSobjects {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn list_sobjects(&self, query_params: Option<&ListSobjectsParams>) -> Result<GetAllResponse> {
-        self.execute::<OperationListSobjects>(&(), (), query_params)
+    pub async fn list_sobjects(&self, query_params: Option<&ListSobjectsParams>) -> Result<GetAllResponse> {
+        self.execute::<OperationListSobjects>(&(), (), query_params).await
     }
 }
 
@@ -788,8 +776,8 @@ impl Operation for OperationPersistTransientKey {
 }
 
 impl SdkmsClient {
-    pub fn persist_transient_key(&self, req: &PersistTransientKeyRequest) -> Result<Sobject> {
-        self.execute::<OperationPersistTransientKey>(req, (), None)
+    pub async fn persist_transient_key(&self, req: &PersistTransientKeyRequest) -> Result<Sobject> {
+        self.execute::<OperationPersistTransientKey>(req, (), None).await
     }
 }
 
@@ -810,13 +798,13 @@ impl Operation for OperationRemovePrivate {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn remove_private(&self, id: &Uuid) -> Result<()> {
-        self.execute::<OperationRemovePrivate>(&(), (id,), None)
+    pub async fn remove_private(&self, id: &Uuid) -> Result<()> {
+        self.execute::<OperationRemovePrivate>(&(), (id,), None).await
     }
-    pub fn request_approval_to_remove_private(
+    pub async fn request_approval_to_remove_private(
         &self, id: &Uuid,
         description: Option<String>) -> Result<PendingApproval<OperationRemovePrivate>> {
-        self.request_approval::<OperationRemovePrivate>(&(), (id,), None, description)
+        self.request_approval::<OperationRemovePrivate>(&(), (id,), None, description).await
     }
 }
 
@@ -837,13 +825,13 @@ impl Operation for OperationRevertPrevKeyOp {
 }
 
 impl SdkmsClient {
-    pub fn revert_prev_key_op(&self, id: &Uuid, req: &RevertRequest) -> Result<()> {
-        self.execute::<OperationRevertPrevKeyOp>(req, (id,), None)
+    pub async fn revert_prev_key_op(&self, id: &Uuid, req: &RevertRequest) -> Result<()> {
+        self.execute::<OperationRevertPrevKeyOp>(req, (id,), None).await
     }
-    pub fn request_approval_to_revert_prev_key_op(
+    pub async fn request_approval_to_revert_prev_key_op(
         &self, id: &Uuid, req: &RevertRequest,
         description: Option<String>) -> Result<PendingApproval<OperationRevertPrevKeyOp>> {
-        self.request_approval::<OperationRevertPrevKeyOp>(req, (id,), None, description)
+        self.request_approval::<OperationRevertPrevKeyOp>(req, (id,), None, description).await
     }
 }
 
@@ -864,13 +852,13 @@ impl Operation for OperationRevokeSobject {
 }
 
 impl SdkmsClient {
-    pub fn revoke_sobject(&self, id: &Uuid, req: &RevocationReason) -> Result<()> {
-        self.execute::<OperationRevokeSobject>(req, (id,), None)
+    pub async fn revoke_sobject(&self, id: &Uuid, req: &RevocationReason) -> Result<()> {
+        self.execute::<OperationRevokeSobject>(req, (id,), None).await
     }
-    pub fn request_approval_to_revoke_sobject(
+    pub async fn request_approval_to_revoke_sobject(
         &self, id: &Uuid, req: &RevocationReason,
         description: Option<String>) -> Result<PendingApproval<OperationRevokeSobject>> {
-        self.request_approval::<OperationRevokeSobject>(req, (id,), None, description)
+        self.request_approval::<OperationRevokeSobject>(req, (id,), None, description).await
     }
 }
 
@@ -891,13 +879,13 @@ impl Operation for OperationRotateSobject {
 }
 
 impl SdkmsClient {
-    pub fn rotate_sobject(&self, req: &SobjectRekeyRequest) -> Result<Sobject> {
-        self.execute::<OperationRotateSobject>(req, (), None)
+    pub async fn rotate_sobject(&self, req: &SobjectRekeyRequest) -> Result<Sobject> {
+        self.execute::<OperationRotateSobject>(req, (), None).await
     }
-    pub fn request_approval_to_rotate_sobject(
+    pub async fn request_approval_to_rotate_sobject(
         &self, req: &SobjectRekeyRequest,
         description: Option<String>) -> Result<PendingApproval<OperationRotateSobject>> {
-        self.request_approval::<OperationRotateSobject>(req, (), None, description)
+        self.request_approval::<OperationRotateSobject>(req, (), None, description).await
     }
 }
 
@@ -918,13 +906,13 @@ impl Operation for OperationUpdateSobject {
 }
 
 impl SdkmsClient {
-    pub fn update_sobject(&self, id: &Uuid, req: &SobjectRequest) -> Result<Sobject> {
-        self.execute::<OperationUpdateSobject>(req, (id,), None)
+    pub async fn update_sobject(&self, id: &Uuid, req: &SobjectRequest) -> Result<Sobject> {
+        self.execute::<OperationUpdateSobject>(req, (id,), None).await
     }
-    pub fn request_approval_to_update_sobject(
+    pub async fn request_approval_to_update_sobject(
         &self, id: &Uuid, req: &SobjectRequest,
         description: Option<String>) -> Result<PendingApproval<OperationUpdateSobject>> {
-        self.request_approval::<OperationUpdateSobject>(req, (id,), None, description)
+        self.request_approval::<OperationUpdateSobject>(req, (id,), None, description).await
     }
 }
 
@@ -945,8 +933,8 @@ impl Operation for OperationVerifyKcv {
 }
 
 impl SdkmsClient {
-    pub fn verify_kcv(&self, req: &VerifyKcvRequest) -> Result<VerifyKcvResponse> {
-        self.execute::<OperationVerifyKcv>(req, (), None)
+    pub async fn verify_kcv(&self, req: &VerifyKcvRequest) -> Result<VerifyKcvResponse> {
+        self.execute::<OperationVerifyKcv>(req, (), None).await
     }
 }
 

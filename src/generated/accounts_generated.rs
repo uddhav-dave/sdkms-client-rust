@@ -603,8 +603,8 @@ impl Operation for OperationAccountUsage {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn account_usage(&self, id: &Uuid, query_params: Option<&CountParams>) -> Result<GetUsageResponse> {
-        self.execute::<OperationAccountUsage>(&(), (id,), query_params)
+    pub async fn account_usage(&self, id: &Uuid, query_params: Option<&CountParams>) -> Result<GetUsageResponse> {
+        self.execute::<OperationAccountUsage>(&(), (id,), query_params).await
     }
 }
 
@@ -625,13 +625,13 @@ impl Operation for OperationCreateAccount {
 }
 
 impl SdkmsClient {
-    pub fn create_account(&self, req: &AccountRequest) -> Result<Account> {
-        self.execute::<OperationCreateAccount>(req, (), None)
+    pub async fn create_account(&self, req: &AccountRequest) -> Result<Account> {
+        self.execute::<OperationCreateAccount>(req, (), None).await
     }
-    pub fn request_approval_to_create_account(
+    pub async fn request_approval_to_create_account(
         &self, req: &AccountRequest,
         description: Option<String>) -> Result<PendingApproval<OperationCreateAccount>> {
-        self.request_approval::<OperationCreateAccount>(req, (), None, description)
+        self.request_approval::<OperationCreateAccount>(req, (), None, description).await
     }
 }
 
@@ -652,8 +652,8 @@ impl Operation for OperationDeleteAccount {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn delete_account(&self, id: &Uuid) -> Result<()> {
-        self.execute::<OperationDeleteAccount>(&(), (id,), None)
+    pub async fn delete_account(&self, id: &Uuid) -> Result<()> {
+        self.execute::<OperationDeleteAccount>(&(), (id,), None).await
     }
 }
 
@@ -674,8 +674,8 @@ impl Operation for OperationGetAccount {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn get_account(&self, id: &Uuid, query_params: Option<&GetAccountParams>) -> Result<Account> {
-        self.execute::<OperationGetAccount>(&(), (id,), query_params)
+    pub async fn get_account(&self, id: &Uuid, query_params: Option<&GetAccountParams>) -> Result<Account> {
+        self.execute::<OperationGetAccount>(&(), (id,), query_params).await
     }
 }
 
@@ -696,8 +696,8 @@ impl Operation for OperationListAccounts {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn list_accounts(&self, query_params: Option<&GetAccountParams>) -> Result<Vec<Account>> {
-        self.execute::<OperationListAccounts>(&(), (), query_params)
+    pub async fn list_accounts(&self, query_params: Option<&GetAccountParams>) -> Result<Vec<Account>> {
+        self.execute::<OperationListAccounts>(&(), (), query_params).await
     }
 }
 
@@ -718,13 +718,13 @@ impl Operation for OperationUpdateAccount {
 }
 
 impl SdkmsClient {
-    pub fn update_account(&self, id: &Uuid, req: &AccountRequest) -> Result<Account> {
-        self.execute::<OperationUpdateAccount>(req, (id,), None)
+    pub async fn update_account(&self, id: &Uuid, req: &AccountRequest) -> Result<Account> {
+        self.execute::<OperationUpdateAccount>(req, (id,), None).await
     }
-    pub fn request_approval_to_update_account(
+    pub async fn request_approval_to_update_account(
         &self, id: &Uuid, req: &AccountRequest,
         description: Option<String>) -> Result<PendingApproval<OperationUpdateAccount>> {
-        self.request_approval::<OperationUpdateAccount>(req, (id,), None, description)
+        self.request_approval::<OperationUpdateAccount>(req, (id,), None, description).await
     }
 }
 

@@ -472,13 +472,13 @@ impl Operation for OperationAgree {
 }
 
 impl SdkmsClient {
-    pub fn agree(&self, req: &AgreeKeyRequest) -> Result<Sobject> {
-        self.execute::<OperationAgree>(req, (), None)
+    pub async fn agree(&self, req: &AgreeKeyRequest) -> Result<Sobject> {
+        self.execute::<OperationAgree>(req, (), None).await
     }
-    pub fn request_approval_to_agree(
+    pub async fn request_approval_to_agree(
         &self, req: &AgreeKeyRequest,
         description: Option<String>) -> Result<PendingApproval<OperationAgree>> {
-        self.request_approval::<OperationAgree>(req, (), None, description)
+        self.request_approval::<OperationAgree>(req, (), None, description).await
     }
 }
 
@@ -499,8 +499,8 @@ impl Operation for OperationCreateDigest {
 }
 
 impl SdkmsClient {
-    pub fn create_digest(&self, req: &DigestRequest) -> Result<DigestResponse> {
-        self.execute::<OperationCreateDigest>(req, (), None)
+    pub async fn create_digest(&self, req: &DigestRequest) -> Result<DigestResponse> {
+        self.execute::<OperationCreateDigest>(req, (), None).await
     }
 }
 
@@ -521,13 +521,13 @@ impl Operation for OperationDecrypt {
 }
 
 impl SdkmsClient {
-    pub fn decrypt(&self, req: &DecryptRequest) -> Result<DecryptResponse> {
-        self.execute::<OperationDecrypt>(req, (), None)
+    pub async fn decrypt(&self, req: &DecryptRequest) -> Result<DecryptResponse> {
+        self.execute::<OperationDecrypt>(req, (), None).await
     }
-    pub fn request_approval_to_decrypt(
+    pub async fn request_approval_to_decrypt(
         &self, req: &DecryptRequest,
         description: Option<String>) -> Result<PendingApproval<OperationDecrypt>> {
-        self.request_approval::<OperationDecrypt>(req, (), None, description)
+        self.request_approval::<OperationDecrypt>(req, (), None, description).await
     }
 }
 
@@ -548,8 +548,8 @@ impl Operation for OperationDecryptFinal {
 }
 
 impl SdkmsClient {
-    pub fn decrypt_final(&self, req: &DecryptFinalRequest) -> Result<DecryptFinalResponse> {
-        self.execute::<OperationDecryptFinal>(req, (), None)
+    pub async fn decrypt_final(&self, req: &DecryptFinalRequest) -> Result<DecryptFinalResponse> {
+        self.execute::<OperationDecryptFinal>(req, (), None).await
     }
 }
 
@@ -570,8 +570,8 @@ impl Operation for OperationDecryptInit {
 }
 
 impl SdkmsClient {
-    pub fn decrypt_init(&self, req: &DecryptInitRequest) -> Result<DecryptInitResponse> {
-        self.execute::<OperationDecryptInit>(req, (), None)
+    pub async fn decrypt_init(&self, req: &DecryptInitRequest) -> Result<DecryptInitResponse> {
+        self.execute::<OperationDecryptInit>(req, (), None).await
     }
 }
 
@@ -592,8 +592,8 @@ impl Operation for OperationDecryptUpdate {
 }
 
 impl SdkmsClient {
-    pub fn decrypt_update(&self, req: &DecryptUpdateRequest) -> Result<DecryptUpdateResponse> {
-        self.execute::<OperationDecryptUpdate>(req, (), None)
+    pub async fn decrypt_update(&self, req: &DecryptUpdateRequest) -> Result<DecryptUpdateResponse> {
+        self.execute::<OperationDecryptUpdate>(req, (), None).await
     }
 }
 
@@ -614,13 +614,13 @@ impl Operation for OperationDerive {
 }
 
 impl SdkmsClient {
-    pub fn derive(&self, req: &DeriveKeyRequest) -> Result<Sobject> {
-        self.execute::<OperationDerive>(req, (), None)
+    pub async fn derive(&self, req: &DeriveKeyRequest) -> Result<Sobject> {
+        self.execute::<OperationDerive>(req, (), None).await
     }
-    pub fn request_approval_to_derive(
+    pub async fn request_approval_to_derive(
         &self, req: &DeriveKeyRequest,
         description: Option<String>) -> Result<PendingApproval<OperationDerive>> {
-        self.request_approval::<OperationDerive>(req, (), None, description)
+        self.request_approval::<OperationDerive>(req, (), None, description).await
     }
 }
 
@@ -641,13 +641,13 @@ impl Operation for OperationEncrypt {
 }
 
 impl SdkmsClient {
-    pub fn encrypt(&self, req: &EncryptRequest) -> Result<EncryptResponse> {
-        self.execute::<OperationEncrypt>(req, (), None)
+    pub async fn encrypt(&self, req: &EncryptRequest) -> Result<EncryptResponse> {
+        self.execute::<OperationEncrypt>(req, (), None).await
     }
-    pub fn request_approval_to_encrypt(
+    pub async fn request_approval_to_encrypt(
         &self, req: &EncryptRequest,
         description: Option<String>) -> Result<PendingApproval<OperationEncrypt>> {
-        self.request_approval::<OperationEncrypt>(req, (), None, description)
+        self.request_approval::<OperationEncrypt>(req, (), None, description).await
     }
 }
 
@@ -668,8 +668,8 @@ impl Operation for OperationEncryptFinal {
 }
 
 impl SdkmsClient {
-    pub fn encrypt_final(&self, req: &EncryptFinalRequest) -> Result<EncryptFinalResponse> {
-        self.execute::<OperationEncryptFinal>(req, (), None)
+    pub async fn encrypt_final(&self, req: &EncryptFinalRequest) -> Result<EncryptFinalResponse> {
+        self.execute::<OperationEncryptFinal>(req, (), None).await
     }
 }
 
@@ -690,8 +690,8 @@ impl Operation for OperationEncryptInit {
 }
 
 impl SdkmsClient {
-    pub fn encrypt_init(&self, req: &EncryptInitRequest) -> Result<EncryptInitResponse> {
-        self.execute::<OperationEncryptInit>(req, (), None)
+    pub async fn encrypt_init(&self, req: &EncryptInitRequest) -> Result<EncryptInitResponse> {
+        self.execute::<OperationEncryptInit>(req, (), None).await
     }
 }
 
@@ -712,8 +712,8 @@ impl Operation for OperationEncryptUpdate {
 }
 
 impl SdkmsClient {
-    pub fn encrypt_update(&self, req: &EncryptUpdateRequest) -> Result<EncryptUpdateResponse> {
-        self.execute::<OperationEncryptUpdate>(req, (), None)
+    pub async fn encrypt_update(&self, req: &EncryptUpdateRequest) -> Result<EncryptUpdateResponse> {
+        self.execute::<OperationEncryptUpdate>(req, (), None).await
     }
 }
 
@@ -734,13 +734,13 @@ impl Operation for OperationMac {
 }
 
 impl SdkmsClient {
-    pub fn mac(&self, req: &MacRequest) -> Result<MacResponse> {
-        self.execute::<OperationMac>(req, (), None)
+    pub async fn mac(&self, req: &MacRequest) -> Result<MacResponse> {
+        self.execute::<OperationMac>(req, (), None).await
     }
-    pub fn request_approval_to_mac(
+    pub async fn request_approval_to_mac(
         &self, req: &MacRequest,
         description: Option<String>) -> Result<PendingApproval<OperationMac>> {
-        self.request_approval::<OperationMac>(req, (), None, description)
+        self.request_approval::<OperationMac>(req, (), None, description).await
     }
 }
 
@@ -761,8 +761,8 @@ impl Operation for OperationMacVerify {
 }
 
 impl SdkmsClient {
-    pub fn mac_verify(&self, req: &VerifyMacRequest) -> Result<VerifyResponse> {
-        self.execute::<OperationMacVerify>(req, (), None)
+    pub async fn mac_verify(&self, req: &VerifyMacRequest) -> Result<VerifyResponse> {
+        self.execute::<OperationMacVerify>(req, (), None).await
     }
 }
 
@@ -783,13 +783,13 @@ impl Operation for OperationSign {
 }
 
 impl SdkmsClient {
-    pub fn sign(&self, req: &SignRequest) -> Result<SignResponse> {
-        self.execute::<OperationSign>(req, (), None)
+    pub async fn sign(&self, req: &SignRequest) -> Result<SignResponse> {
+        self.execute::<OperationSign>(req, (), None).await
     }
-    pub fn request_approval_to_sign(
+    pub async fn request_approval_to_sign(
         &self, req: &SignRequest,
         description: Option<String>) -> Result<PendingApproval<OperationSign>> {
-        self.request_approval::<OperationSign>(req, (), None, description)
+        self.request_approval::<OperationSign>(req, (), None, description).await
     }
 }
 
@@ -810,13 +810,13 @@ impl Operation for OperationUnwrap {
 }
 
 impl SdkmsClient {
-    pub fn unwrap(&self, req: &UnwrapKeyRequest) -> Result<Sobject> {
-        self.execute::<OperationUnwrap>(req, (), None)
+    pub async fn unwrap(&self, req: &UnwrapKeyRequest) -> Result<Sobject> {
+        self.execute::<OperationUnwrap>(req, (), None).await
     }
-    pub fn request_approval_to_unwrap(
+    pub async fn request_approval_to_unwrap(
         &self, req: &UnwrapKeyRequest,
         description: Option<String>) -> Result<PendingApproval<OperationUnwrap>> {
-        self.request_approval::<OperationUnwrap>(req, (), None, description)
+        self.request_approval::<OperationUnwrap>(req, (), None, description).await
     }
 }
 
@@ -837,8 +837,8 @@ impl Operation for OperationVerify {
 }
 
 impl SdkmsClient {
-    pub fn verify(&self, req: &VerifyRequest) -> Result<VerifyResponse> {
-        self.execute::<OperationVerify>(req, (), None)
+    pub async fn verify(&self, req: &VerifyRequest) -> Result<VerifyResponse> {
+        self.execute::<OperationVerify>(req, (), None).await
     }
 }
 
@@ -859,13 +859,13 @@ impl Operation for OperationWrap {
 }
 
 impl SdkmsClient {
-    pub fn wrap(&self, req: &WrapKeyRequest) -> Result<WrapKeyResponse> {
-        self.execute::<OperationWrap>(req, (), None)
+    pub async fn wrap(&self, req: &WrapKeyRequest) -> Result<WrapKeyResponse> {
+        self.execute::<OperationWrap>(req, (), None).await
     }
-    pub fn request_approval_to_wrap(
+    pub async fn request_approval_to_wrap(
         &self, req: &WrapKeyRequest,
         description: Option<String>) -> Result<PendingApproval<OperationWrap>> {
-        self.request_approval::<OperationWrap>(req, (), None, description)
+        self.request_approval::<OperationWrap>(req, (), None, description).await
     }
 }
 

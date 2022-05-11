@@ -88,8 +88,8 @@ impl Operation for OperationGetAppAggregate {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn get_app_aggregate(&self, query_params: Option<&StatsParams>) -> Result<EsStatsCountQueryResponse> {
-        self.execute::<OperationGetAppAggregate>(&(), (), query_params)
+    pub async fn get_app_aggregate(&self, query_params: Option<&StatsParams>) -> Result<EsStatsCountQueryResponse> {
+        self.execute::<OperationGetAppAggregate>(&(), (), query_params).await
     }
 }
 
@@ -110,8 +110,8 @@ impl Operation for OperationGetAppStats {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn get_app_stats(&self, id: &Uuid, query_params: Option<&StatsParams>) -> Result<EsStatsCountQueryResponse> {
-        self.execute::<OperationGetAppStats>(&(), (id,), query_params)
+    pub async fn get_app_stats(&self, id: &Uuid, query_params: Option<&StatsParams>) -> Result<EsStatsCountQueryResponse> {
+        self.execute::<OperationGetAppStats>(&(), (id,), query_params).await
     }
 }
 
@@ -132,8 +132,8 @@ impl Operation for OperationGetGroupAggregate {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn get_group_aggregate(&self, query_params: Option<&StatsParams>) -> Result<EsStatsCountQueryResponse> {
-        self.execute::<OperationGetGroupAggregate>(&(), (), query_params)
+    pub async fn get_group_aggregate(&self, query_params: Option<&StatsParams>) -> Result<EsStatsCountQueryResponse> {
+        self.execute::<OperationGetGroupAggregate>(&(), (), query_params).await
     }
 }
 
@@ -154,8 +154,8 @@ impl Operation for OperationGetGroupStats {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn get_group_stats(&self, id: &Uuid, query_params: Option<&StatsParams>) -> Result<EsStatsCountQueryResponse> {
-        self.execute::<OperationGetGroupStats>(&(), (id,), query_params)
+    pub async fn get_group_stats(&self, id: &Uuid, query_params: Option<&StatsParams>) -> Result<EsStatsCountQueryResponse> {
+        self.execute::<OperationGetGroupStats>(&(), (id,), query_params).await
     }
 }
 
@@ -176,8 +176,8 @@ impl Operation for OperationGetSobjectStats {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn get_sobject_stats(&self, id: &Uuid, query_params: Option<&StatsParams>) -> Result<EsStatsCountQueryResponse> {
-        self.execute::<OperationGetSobjectStats>(&(), (id,), query_params)
+    pub async fn get_sobject_stats(&self, id: &Uuid, query_params: Option<&StatsParams>) -> Result<EsStatsCountQueryResponse> {
+        self.execute::<OperationGetSobjectStats>(&(), (id,), query_params).await
     }
 }
 

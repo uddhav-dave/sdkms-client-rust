@@ -40,8 +40,8 @@ impl Operation for OperationGetMarketplace {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn get_marketplace(&self, query_params: Option<&GetMarketplaceParams>) -> Result<Vec<MarketplacePlugin>> {
-        self.execute::<OperationGetMarketplace>(&(), (), query_params)
+    pub async fn get_marketplace(&self, query_params: Option<&GetMarketplaceParams>) -> Result<Vec<MarketplacePlugin>> {
+        self.execute::<OperationGetMarketplace>(&(), (), query_params).await
     }
 }
 

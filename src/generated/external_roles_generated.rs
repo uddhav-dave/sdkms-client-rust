@@ -80,8 +80,8 @@ impl Operation for OperationCreateExternalRole {
 }
 
 impl SdkmsClient {
-    pub fn create_external_role(&self, req: &ExternalRoleRequest) -> Result<ExternalRole> {
-        self.execute::<OperationCreateExternalRole>(req, (), None)
+    pub async fn create_external_role(&self, req: &ExternalRoleRequest) -> Result<ExternalRole> {
+        self.execute::<OperationCreateExternalRole>(req, (), None).await
     }
 }
 
@@ -102,8 +102,8 @@ impl Operation for OperationDeleteExternalRole {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn delete_external_role(&self, id: &Uuid) -> Result<()> {
-        self.execute::<OperationDeleteExternalRole>(&(), (id,), None)
+    pub async fn delete_external_role(&self, id: &Uuid) -> Result<()> {
+        self.execute::<OperationDeleteExternalRole>(&(), (id,), None).await
     }
 }
 
@@ -124,8 +124,8 @@ impl Operation for OperationGetExternalRole {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn get_external_role(&self, id: &Uuid) -> Result<ExternalRole> {
-        self.execute::<OperationGetExternalRole>(&(), (id,), None)
+    pub async fn get_external_role(&self, id: &Uuid) -> Result<ExternalRole> {
+        self.execute::<OperationGetExternalRole>(&(), (id,), None).await
     }
 }
 
@@ -146,8 +146,8 @@ impl Operation for OperationListExternalRoles {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn list_external_roles(&self, query_params: Option<&ListExternalRolesParams>) -> Result<Vec<ExternalRole>> {
-        self.execute::<OperationListExternalRoles>(&(), (), query_params)
+    pub async fn list_external_roles(&self, query_params: Option<&ListExternalRolesParams>) -> Result<Vec<ExternalRole>> {
+        self.execute::<OperationListExternalRoles>(&(), (), query_params).await
     }
 }
 
@@ -168,8 +168,8 @@ impl Operation for OperationSyncExternalRole {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn sync_external_role(&self, id: &Uuid) -> Result<ExternalRole> {
-        self.execute::<OperationSyncExternalRole>(&(), (id,), None)
+    pub async fn sync_external_role(&self, id: &Uuid) -> Result<ExternalRole> {
+        self.execute::<OperationSyncExternalRole>(&(), (id,), None).await
     }
 }
 
@@ -190,8 +190,8 @@ impl Operation for OperationUpdateExternalRole {
 }
 
 impl SdkmsClient {
-    pub fn update_external_role(&self, id: &Uuid, req: &ExternalRoleRequest) -> Result<ExternalRole> {
-        self.execute::<OperationUpdateExternalRole>(req, (id,), None)
+    pub async fn update_external_role(&self, id: &Uuid, req: &ExternalRoleRequest) -> Result<ExternalRole> {
+        self.execute::<OperationUpdateExternalRole>(req, (id,), None).await
     }
 }
 

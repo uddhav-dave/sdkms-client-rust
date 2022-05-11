@@ -243,8 +243,8 @@ impl Operation for OperationChangePassword {
 }
 
 impl SdkmsClient {
-    pub fn change_password(&self, req: &PasswordChangeRequest) -> Result<()> {
-        self.execute::<OperationChangePassword>(req, (), None)
+    pub async fn change_password(&self, req: &PasswordChangeRequest) -> Result<()> {
+        self.execute::<OperationChangePassword>(req, (), None).await
     }
 }
 
@@ -265,8 +265,8 @@ impl Operation for OperationConfirmEmail {
 }
 
 impl SdkmsClient {
-    pub fn confirm_email(&self, id: &Uuid, req: &ConfirmEmailRequest) -> Result<ConfirmEmailResponse> {
-        self.execute::<OperationConfirmEmail>(req, (id,), None)
+    pub async fn confirm_email(&self, id: &Uuid, req: &ConfirmEmailRequest) -> Result<ConfirmEmailResponse> {
+        self.execute::<OperationConfirmEmail>(req, (id,), None).await
     }
 }
 
@@ -287,8 +287,8 @@ impl Operation for OperationDeleteStale {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn delete_stale(&self, id: &Uuid) -> Result<()> {
-        self.execute::<OperationDeleteStale>(&(), (id,), None)
+    pub async fn delete_stale(&self, id: &Uuid) -> Result<()> {
+        self.execute::<OperationDeleteStale>(&(), (id,), None).await
     }
 }
 
@@ -309,8 +309,8 @@ impl Operation for OperationDeleteUser {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn delete_user(&self) -> Result<()> {
-        self.execute::<OperationDeleteUser>(&(), (), None)
+    pub async fn delete_user(&self) -> Result<()> {
+        self.execute::<OperationDeleteUser>(&(), (), None).await
     }
 }
 
@@ -331,8 +331,8 @@ impl Operation for OperationDeleteUserAccount {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn delete_user_account(&self, id: &Uuid) -> Result<()> {
-        self.execute::<OperationDeleteUserAccount>(&(), (id,), None)
+    pub async fn delete_user_account(&self, id: &Uuid) -> Result<()> {
+        self.execute::<OperationDeleteUserAccount>(&(), (id,), None).await
     }
 }
 
@@ -353,8 +353,8 @@ impl Operation for OperationForgotPassword {
 }
 
 impl SdkmsClient {
-    pub fn forgot_password(&self, req: &ForgotPasswordRequest) -> Result<()> {
-        self.execute::<OperationForgotPassword>(req, (), None)
+    pub async fn forgot_password(&self, req: &ForgotPasswordRequest) -> Result<()> {
+        self.execute::<OperationForgotPassword>(req, (), None).await
     }
 }
 
@@ -375,8 +375,8 @@ impl Operation for OperationGenerateRecoveryCodes {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn generate_recovery_codes(&self) -> Result<RecoveryCodes> {
-        self.execute::<OperationGenerateRecoveryCodes>(&(), (), None)
+    pub async fn generate_recovery_codes(&self) -> Result<RecoveryCodes> {
+        self.execute::<OperationGenerateRecoveryCodes>(&(), (), None).await
     }
 }
 
@@ -397,8 +397,8 @@ impl Operation for OperationGetUser {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn get_user(&self, id: &Uuid) -> Result<User> {
-        self.execute::<OperationGetUser>(&(), (id,), None)
+    pub async fn get_user(&self, id: &Uuid) -> Result<User> {
+        self.execute::<OperationGetUser>(&(), (id,), None).await
     }
 }
 
@@ -419,8 +419,8 @@ impl Operation for OperationGetUserAccounts {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn get_user_accounts(&self) -> Result<HashMap<Uuid,UserAccountFlags>> {
-        self.execute::<OperationGetUserAccounts>(&(), (), None)
+    pub async fn get_user_accounts(&self) -> Result<HashMap<Uuid,UserAccountFlags>> {
+        self.execute::<OperationGetUserAccounts>(&(), (), None).await
     }
 }
 
@@ -441,8 +441,8 @@ impl Operation for OperationInviteUser {
 }
 
 impl SdkmsClient {
-    pub fn invite_user(&self, req: &UserRequest) -> Result<User> {
-        self.execute::<OperationInviteUser>(req, (), None)
+    pub async fn invite_user(&self, req: &UserRequest) -> Result<User> {
+        self.execute::<OperationInviteUser>(req, (), None).await
     }
 }
 
@@ -463,8 +463,8 @@ impl Operation for OperationListUsers {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn list_users(&self, query_params: Option<&ListUsersParams>) -> Result<Vec<User>> {
-        self.execute::<OperationListUsers>(&(), (), query_params)
+    pub async fn list_users(&self, query_params: Option<&ListUsersParams>) -> Result<Vec<User>> {
+        self.execute::<OperationListUsers>(&(), (), query_params).await
     }
 }
 
@@ -485,8 +485,8 @@ impl Operation for OperationProcessInvite {
 }
 
 impl SdkmsClient {
-    pub fn process_invite(&self, req: &ProcessInviteRequest) -> Result<()> {
-        self.execute::<OperationProcessInvite>(req, (), None)
+    pub async fn process_invite(&self, req: &ProcessInviteRequest) -> Result<()> {
+        self.execute::<OperationProcessInvite>(req, (), None).await
     }
 }
 
@@ -507,8 +507,8 @@ impl Operation for OperationResendConfirmEmail {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn resend_confirm_email(&self) -> Result<()> {
-        self.execute::<OperationResendConfirmEmail>(&(), (), None)
+    pub async fn resend_confirm_email(&self) -> Result<()> {
+        self.execute::<OperationResendConfirmEmail>(&(), (), None).await
     }
 }
 
@@ -529,8 +529,8 @@ impl Operation for OperationResendInvite {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn resend_invite(&self, id: &Uuid) -> Result<()> {
-        self.execute::<OperationResendInvite>(&(), (id,), None)
+    pub async fn resend_invite(&self, id: &Uuid) -> Result<()> {
+        self.execute::<OperationResendInvite>(&(), (id,), None).await
     }
 }
 
@@ -551,8 +551,8 @@ impl Operation for OperationResetPassword {
 }
 
 impl SdkmsClient {
-    pub fn reset_password(&self, id: &Uuid, req: &PasswordResetRequest) -> Result<()> {
-        self.execute::<OperationResetPassword>(req, (id,), None)
+    pub async fn reset_password(&self, id: &Uuid, req: &PasswordResetRequest) -> Result<()> {
+        self.execute::<OperationResetPassword>(req, (id,), None).await
     }
 }
 
@@ -573,8 +573,8 @@ impl Operation for OperationSignupUser {
 }
 
 impl SdkmsClient {
-    pub fn signup_user(&self, req: &SignupRequest) -> Result<User> {
-        self.execute::<OperationSignupUser>(req, (), None)
+    pub async fn signup_user(&self, req: &SignupRequest) -> Result<User> {
+        self.execute::<OperationSignupUser>(req, (), None).await
     }
 }
 
@@ -595,8 +595,8 @@ impl Operation for OperationUpdateUser {
 }
 
 impl SdkmsClient {
-    pub fn update_user(&self, id: &Uuid, req: &UserRequest) -> Result<User> {
-        self.execute::<OperationUpdateUser>(req, (id,), None)
+    pub async fn update_user(&self, id: &Uuid, req: &UserRequest) -> Result<User> {
+        self.execute::<OperationUpdateUser>(req, (id,), None).await
     }
 }
 
@@ -617,8 +617,8 @@ impl Operation for OperationValidateToken {
 }
 
 impl SdkmsClient {
-    pub fn validate_token(&self, id: &Uuid, req: &ValidateTokenRequest) -> Result<ValidateTokenResponse> {
-        self.execute::<OperationValidateToken>(req, (id,), None)
+    pub async fn validate_token(&self, id: &Uuid, req: &ValidateTokenRequest) -> Result<ValidateTokenResponse> {
+        self.execute::<OperationValidateToken>(req, (id,), None).await
     }
 }
 

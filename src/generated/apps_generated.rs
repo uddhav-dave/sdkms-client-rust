@@ -296,8 +296,8 @@ impl Operation for OperationCreateApp {
 }
 
 impl SdkmsClient {
-    pub fn create_app(&self, query_params: Option<&GetAppParams>, req: &AppRequest) -> Result<App> {
-        self.execute::<OperationCreateApp>(req, (), query_params)
+    pub async fn create_app(&self, query_params: Option<&GetAppParams>, req: &AppRequest) -> Result<App> {
+        self.execute::<OperationCreateApp>(req, (), query_params).await
     }
 }
 
@@ -318,8 +318,8 @@ impl Operation for OperationDeleteApp {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn delete_app(&self, id: &Uuid) -> Result<()> {
-        self.execute::<OperationDeleteApp>(&(), (id,), None)
+    pub async fn delete_app(&self, id: &Uuid) -> Result<()> {
+        self.execute::<OperationDeleteApp>(&(), (id,), None).await
     }
 }
 
@@ -340,8 +340,8 @@ impl Operation for OperationGetApp {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn get_app(&self, id: &Uuid, query_params: Option<&GetAppParams>) -> Result<App> {
-        self.execute::<OperationGetApp>(&(), (id,), query_params)
+    pub async fn get_app(&self, id: &Uuid, query_params: Option<&GetAppParams>) -> Result<App> {
+        self.execute::<OperationGetApp>(&(), (id,), query_params).await
     }
 }
 
@@ -362,13 +362,13 @@ impl Operation for OperationGetAppCredential {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn get_app_credential(&self, id: &Uuid) -> Result<AppCredentialResponse> {
-        self.execute::<OperationGetAppCredential>(&(), (id,), None)
+    pub async fn get_app_credential(&self, id: &Uuid) -> Result<AppCredentialResponse> {
+        self.execute::<OperationGetAppCredential>(&(), (id,), None).await
     }
-    pub fn request_approval_to_get_app_credential(
+    pub async fn request_approval_to_get_app_credential(
         &self, id: &Uuid,
         description: Option<String>) -> Result<PendingApproval<OperationGetAppCredential>> {
-        self.request_approval::<OperationGetAppCredential>(&(), (id,), None, description)
+        self.request_approval::<OperationGetAppCredential>(&(), (id,), None, description).await
     }
 }
 
@@ -389,8 +389,8 @@ impl Operation for OperationGetClientConfigs {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn get_client_configs(&self) -> Result<ClientConfigurations> {
-        self.execute::<OperationGetClientConfigs>(&(), (), None)
+    pub async fn get_client_configs(&self) -> Result<ClientConfigurations> {
+        self.execute::<OperationGetClientConfigs>(&(), (), None).await
     }
 }
 
@@ -411,8 +411,8 @@ impl Operation for OperationListApps {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn list_apps(&self, query_params: Option<&ListAppsParams>) -> Result<Vec<App>> {
-        self.execute::<OperationListApps>(&(), (), query_params)
+    pub async fn list_apps(&self, query_params: Option<&ListAppsParams>) -> Result<Vec<App>> {
+        self.execute::<OperationListApps>(&(), (), query_params).await
     }
 }
 
@@ -433,13 +433,13 @@ impl Operation for OperationResetAppSecret {
 }
 
 impl SdkmsClient {
-    pub fn reset_app_secret(&self, id: &Uuid, query_params: Option<&GetAppParams>, req: &AppResetSecretRequest) -> Result<App> {
-        self.execute::<OperationResetAppSecret>(req, (id,), query_params)
+    pub async fn reset_app_secret(&self, id: &Uuid, query_params: Option<&GetAppParams>, req: &AppResetSecretRequest) -> Result<App> {
+        self.execute::<OperationResetAppSecret>(req, (id,), query_params).await
     }
-    pub fn request_approval_to_reset_app_secret(
+    pub async fn request_approval_to_reset_app_secret(
         &self, id: &Uuid, query_params: Option<&GetAppParams>, req: &AppResetSecretRequest,
         description: Option<String>) -> Result<PendingApproval<OperationResetAppSecret>> {
-        self.request_approval::<OperationResetAppSecret>(req, (id,), query_params, description)
+        self.request_approval::<OperationResetAppSecret>(req, (id,), query_params, description).await
     }
 }
 
@@ -460,13 +460,13 @@ impl Operation for OperationUpdateApp {
 }
 
 impl SdkmsClient {
-    pub fn update_app(&self, id: &Uuid, query_params: Option<&GetAppParams>, req: &AppRequest) -> Result<App> {
-        self.execute::<OperationUpdateApp>(req, (id,), query_params)
+    pub async fn update_app(&self, id: &Uuid, query_params: Option<&GetAppParams>, req: &AppRequest) -> Result<App> {
+        self.execute::<OperationUpdateApp>(req, (id,), query_params).await
     }
-    pub fn request_approval_to_update_app(
+    pub async fn request_approval_to_update_app(
         &self, id: &Uuid, query_params: Option<&GetAppParams>, req: &AppRequest,
         description: Option<String>) -> Result<PendingApproval<OperationUpdateApp>> {
-        self.request_approval::<OperationUpdateApp>(req, (id,), query_params, description)
+        self.request_approval::<OperationUpdateApp>(req, (id,), query_params, description).await
     }
 }
 

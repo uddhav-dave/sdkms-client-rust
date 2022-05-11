@@ -44,8 +44,8 @@ impl Operation for OperationVersion {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn version(&self) -> Result<VersionResponse> {
-        self.execute::<OperationVersion>(&(), (), None)
+    pub async fn version(&self) -> Result<VersionResponse> {
+        self.execute::<OperationVersion>(&(), (), None).await
     }
 }
 

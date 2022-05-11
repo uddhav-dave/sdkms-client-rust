@@ -156,8 +156,8 @@ impl Operation for OperationApproveRequest {
 }
 
 impl SdkmsClient {
-    pub fn approve_request(&self, id: &Uuid, req: &ApproveRequest) -> Result<ApprovalRequest> {
-        self.execute::<OperationApproveRequest>(req, (id,), None)
+    pub async fn approve_request(&self, id: &Uuid, req: &ApproveRequest) -> Result<ApprovalRequest> {
+        self.execute::<OperationApproveRequest>(req, (id,), None).await
     }
 }
 
@@ -178,8 +178,8 @@ impl Operation for OperationCreateApprovalRequest {
 }
 
 impl SdkmsClient {
-    pub fn create_approval_request(&self, req: &ApprovalRequestRequest) -> Result<ApprovalRequest> {
-        self.execute::<OperationCreateApprovalRequest>(req, (), None)
+    pub async fn create_approval_request(&self, req: &ApprovalRequestRequest) -> Result<ApprovalRequest> {
+        self.execute::<OperationCreateApprovalRequest>(req, (), None).await
     }
 }
 
@@ -200,8 +200,8 @@ impl Operation for OperationDeleteApprovalRequest {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn delete_approval_request(&self, id: &Uuid) -> Result<()> {
-        self.execute::<OperationDeleteApprovalRequest>(&(), (id,), None)
+    pub async fn delete_approval_request(&self, id: &Uuid) -> Result<()> {
+        self.execute::<OperationDeleteApprovalRequest>(&(), (id,), None).await
     }
 }
 
@@ -222,8 +222,8 @@ impl Operation for OperationDenyRequest {
 }
 
 impl SdkmsClient {
-    pub fn deny_request(&self, id: &Uuid, req: &DenyRequest) -> Result<ApprovalRequest> {
-        self.execute::<OperationDenyRequest>(req, (id,), None)
+    pub async fn deny_request(&self, id: &Uuid, req: &DenyRequest) -> Result<ApprovalRequest> {
+        self.execute::<OperationDenyRequest>(req, (id,), None).await
     }
 }
 
@@ -244,8 +244,8 @@ impl Operation for OperationGetApprovalRequest {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn get_approval_request(&self, id: &Uuid) -> Result<ApprovalRequest> {
-        self.execute::<OperationGetApprovalRequest>(&(), (id,), None)
+    pub async fn get_approval_request(&self, id: &Uuid) -> Result<ApprovalRequest> {
+        self.execute::<OperationGetApprovalRequest>(&(), (id,), None).await
     }
 }
 
@@ -266,8 +266,8 @@ impl Operation for OperationGetApprovalRequestResult {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn get_approval_request_result(&self, id: &Uuid) -> Result<ApprovableResult> {
-        self.execute::<OperationGetApprovalRequestResult>(&(), (id,), None)
+    pub async fn get_approval_request_result(&self, id: &Uuid) -> Result<ApprovableResult> {
+        self.execute::<OperationGetApprovalRequestResult>(&(), (id,), None).await
     }
 }
 
@@ -288,8 +288,8 @@ impl Operation for OperationListApprovalRequests {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn list_approval_requests(&self, query_params: Option<&ListApprovalRequestsParams>) -> Result<Vec<ApprovalRequest>> {
-        self.execute::<OperationListApprovalRequests>(&(), (), query_params)
+    pub async fn list_approval_requests(&self, query_params: Option<&ListApprovalRequestsParams>) -> Result<Vec<ApprovalRequest>> {
+        self.execute::<OperationListApprovalRequests>(&(), (), query_params).await
     }
 }
 
@@ -310,8 +310,8 @@ impl Operation for OperationMfaChallenge {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn mfa_challenge(&self, id: &Uuid) -> Result<MfaChallengeResponse> {
-        self.execute::<OperationMfaChallenge>(&(), (id,), None)
+    pub async fn mfa_challenge(&self, id: &Uuid) -> Result<MfaChallengeResponse> {
+        self.execute::<OperationMfaChallenge>(&(), (id,), None).await
     }
 }
 

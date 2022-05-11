@@ -4,19 +4,62 @@ use super::common::*;
 
 use super::SdkmsClient;
 use std::fmt;
-use std::io::Read;
 use std::marker::PhantomData;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
-use super::common::*;
 use headers::HeaderMapExt;
 use headers::{ContentType, HeaderMap};
 use simple_hyper_client::to_bytes;
 use uuid::Uuid;
 use simple_hyper_client::Client as HttpClient;
-use simple_hyper_client::{Bytes, Method, StatusCode};
+use simple_hyper_client::{Method, StatusCode};
 use simple_hyper_client::hyper::header::AUTHORIZATION;
 use serde::{Deserialize, Serialize};
+
+pub struct PendingApproval<O: Operation>(Uuid, PhantomData<O>);
+
+impl<O: Operation> fmt::Debug for PendingApproval<O> {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(&self.0, formatter)
+    }
+}
+
+impl <O: Operation> PendingApproval<O> {
+
+    pub fn from_request_id(request_id: Uuid) -> Self {
+        PendingApproval(request_id, PhantomData)
+    }
+
+    pub fn request_id(&self) -> Uuid {
+        self.0
+    }
+
+    pub async fn status(&self, sdkms: &SdkmsClient) -> Result<ApprovalStatus> {
+        Ok(self.get(sdkms).await?.status)
+    }
+
+    pub async fn get(&self, sdkms:&SdkmsClient) -> Result<ApprovalRequest> {
+        sdkms.get_approval_request(&self.0).await
+    }
+
+    pub async fn result(&self, sdkms:&SdkmsClient) -> Result<Result<O::Output>> {
+        let result = sdkms.get_approval_request_result(&self.0).await?;
+        Ok(if result.is_ok() {
+            serde_json::from_value::<O::Output>(result.body).map_err(Error::EncoderError)
+        } else {
+            let msg: String = serde_json::from_value(result.body).map_err(Error::EncoderError)?;
+            Err(Error::from_status(
+                StatusCode::from_u16(result.status).unwrap(),
+                msg,
+            ))
+        })
+    }
+}
+
+impl<O: Operation> Clone for PendingApproval<O> {
+    fn clone(&self) -> Self {
+        PendingApproval(self.0, PhantomData)
+    }
+}
 
 impl SdkmsClient {    
     // pub async fn terminate(&mut self) -> Result<()> {
@@ -62,7 +105,7 @@ impl SdkmsClient {
         Ok(PendingApproval::from_request_id(request.request_id))
     }
     
-    async fn old_auth(&self, auth: Option<&Auth>) -> Result<Self> {
+    async fn authenticate_client(&self, auth: Option<&Auth>) -> Result<Self> {
         let auth_response: AuthResponse = json_request_with_auth(
             &self.client,
             &self.api_endpoint,
@@ -81,19 +124,19 @@ impl SdkmsClient {
     }
 
     pub async fn authenticate_with_api_key(&self, api_key: &str) -> Result<Self> {
-        self.old_auth(Some(Auth::from_api_key(api_key)).as_ref()).await
+        self.authenticate_client(Some(Auth::from_api_key(api_key)).as_ref()).await
     }
 
     pub async fn authenticate_with_cert(&self, app_id: Option<&Uuid>) -> Result<Self> {
-        self.old_auth(app_id.map(|id| Auth::from_user_pass(id, "")).as_ref()).await
+        self.authenticate_client(app_id.map(|id| Auth::from_user_pass(id, "")).as_ref()).await
     }
 
     pub async fn authenticate_app(&self, app_id: &Uuid, app_secret: &str) -> Result<Self> {
-        self.old_auth(Some(Auth::from_user_pass(app_id, app_secret)).as_ref()).await
+        self.authenticate_client(Some(Auth::from_user_pass(app_id, app_secret)).as_ref()).await
     }
 
     pub async fn authenticate_user(&self, email: &str, password: &str) -> Result<Self> {
-        self.old_auth(Some(Auth::from_user_pass(email, password)).as_ref()).await
+        self.authenticate_client(Some(Auth::from_user_pass(email, password)).as_ref()).await
     }
 
     async fn json_request<E, D>(&self, method: Method, uri: &str, req: Option<&E>) -> Result<D>
@@ -145,7 +188,7 @@ where
         Ok(ref mut res) if res.status().is_success() => {
             info!("{} {} {}", res.status().as_u16(), method, url);
             //TODO Remove Unwrap
-            json_decode_bytes(&mut to_bytes(res.body_mut()).await.expect("Could not convert body to bytes")).map_err(|err| Error::EncoderError(err))
+            json_decode_bytes(&mut to_bytes(res.body_mut()).await.expect("Could not convert Body to bytes")).map_err(|err| Error::EncoderError(err))
         }
         Ok(ref mut res) => {
             info!("{} {} {}", res.status().as_u16(), method, url);

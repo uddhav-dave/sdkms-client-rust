@@ -276,8 +276,8 @@ impl Operation for OperationCheckHmg {
 }
 
 impl SdkmsClient {
-    pub fn check_hmg(&self, id: &Uuid, req: &CheckHmgRequest) -> Result<()> {
-        self.execute::<OperationCheckHmg>(req, (id,), None)
+    pub async fn check_hmg(&self, id: &Uuid, req: &CheckHmgRequest) -> Result<()> {
+        self.execute::<OperationCheckHmg>(req, (id,), None).await
     }
 }
 
@@ -298,8 +298,8 @@ impl Operation for OperationCheckHmgConfig {
 }
 
 impl SdkmsClient {
-    pub fn check_hmg_config(&self, req: &HmgConfig) -> Result<()> {
-        self.execute::<OperationCheckHmgConfig>(req, (), None)
+    pub async fn check_hmg_config(&self, req: &HmgConfig) -> Result<()> {
+        self.execute::<OperationCheckHmgConfig>(req, (), None).await
     }
 }
 
@@ -320,8 +320,8 @@ impl Operation for OperationCreateGroup {
 }
 
 impl SdkmsClient {
-    pub fn create_group(&self, req: &GroupRequest) -> Result<Group> {
-        self.execute::<OperationCreateGroup>(req, (), None)
+    pub async fn create_group(&self, req: &GroupRequest) -> Result<Group> {
+        self.execute::<OperationCreateGroup>(req, (), None).await
     }
 }
 
@@ -342,8 +342,8 @@ impl Operation for OperationDeleteGroup {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn delete_group(&self, id: &Uuid) -> Result<()> {
-        self.execute::<OperationDeleteGroup>(&(), (id,), None)
+    pub async fn delete_group(&self, id: &Uuid) -> Result<()> {
+        self.execute::<OperationDeleteGroup>(&(), (id,), None).await
     }
 }
 
@@ -364,8 +364,8 @@ impl Operation for OperationGetGcpKeyRings {
 }
 
 impl SdkmsClient {
-    pub fn get_gcp_key_rings(&self, req: &GcpKeyRingConfig) -> Result<Vec<String>> {
-        self.execute::<OperationGetGcpKeyRings>(req, (), None)
+    pub async fn get_gcp_key_rings(&self, req: &GcpKeyRingConfig) -> Result<Vec<String>> {
+        self.execute::<OperationGetGcpKeyRings>(req, (), None).await
     }
 }
 
@@ -386,8 +386,8 @@ impl Operation for OperationGetGroup {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn get_group(&self, id: &Uuid) -> Result<Group> {
-        self.execute::<OperationGetGroup>(&(), (id,), None)
+    pub async fn get_group(&self, id: &Uuid) -> Result<Group> {
+        self.execute::<OperationGetGroup>(&(), (id,), None).await
     }
 }
 
@@ -408,8 +408,8 @@ impl Operation for OperationGetVaults {
 }
 
 impl SdkmsClient {
-    pub fn get_vaults(&self, req: &HmgConfig) -> Result<Vec<KeyVault>> {
-        self.execute::<OperationGetVaults>(req, (), None)
+    pub async fn get_vaults(&self, req: &HmgConfig) -> Result<Vec<KeyVault>> {
+        self.execute::<OperationGetVaults>(req, (), None).await
     }
 }
 
@@ -430,8 +430,8 @@ impl Operation for OperationListGroups {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn list_groups(&self) -> Result<Vec<Group>> {
-        self.execute::<OperationListGroups>(&(), (), None)
+    pub async fn list_groups(&self) -> Result<Vec<Group>> {
+        self.execute::<OperationListGroups>(&(), (), None).await
     }
 }
 
@@ -452,8 +452,8 @@ impl Operation for OperationScanHmg {
 }
 
 impl SdkmsClient {
-    pub fn scan_hmg(&self, id: &Uuid, req: &ScanHmgRequest) -> Result<Vec<Sobject>> {
-        self.execute::<OperationScanHmg>(req, (id,), None)
+    pub async fn scan_hmg(&self, id: &Uuid, req: &ScanHmgRequest) -> Result<Vec<Sobject>> {
+        self.execute::<OperationScanHmg>(req, (id,), None).await
     }
 }
 
@@ -474,13 +474,13 @@ impl Operation for OperationUpdateGroup {
 }
 
 impl SdkmsClient {
-    pub fn update_group(&self, id: &Uuid, req: &GroupRequest) -> Result<Group> {
-        self.execute::<OperationUpdateGroup>(req, (id,), None)
+    pub async fn update_group(&self, id: &Uuid, req: &GroupRequest) -> Result<Group> {
+        self.execute::<OperationUpdateGroup>(req, (id,), None).await
     }
-    pub fn request_approval_to_update_group(
+    pub async fn request_approval_to_update_group(
         &self, id: &Uuid, req: &GroupRequest,
         description: Option<String>) -> Result<PendingApproval<OperationUpdateGroup>> {
-        self.request_approval::<OperationUpdateGroup>(req, (id,), None, description)
+        self.request_approval::<OperationUpdateGroup>(req, (id,), None, description).await
     }
 }
 

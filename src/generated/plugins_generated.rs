@@ -154,13 +154,13 @@ impl Operation for OperationCreatePlugin {
 }
 
 impl SdkmsClient {
-    pub fn create_plugin(&self, req: &PluginRequest) -> Result<Plugin> {
-        self.execute::<OperationCreatePlugin>(req, (), None)
+    pub async fn create_plugin(&self, req: &PluginRequest) -> Result<Plugin> {
+        self.execute::<OperationCreatePlugin>(req, (), None).await
     }
-    pub fn request_approval_to_create_plugin(
+    pub async fn request_approval_to_create_plugin(
         &self, req: &PluginRequest,
         description: Option<String>) -> Result<PendingApproval<OperationCreatePlugin>> {
-        self.request_approval::<OperationCreatePlugin>(req, (), None, description)
+        self.request_approval::<OperationCreatePlugin>(req, (), None, description).await
     }
 }
 
@@ -181,8 +181,8 @@ impl Operation for OperationDeletePlugin {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn delete_plugin(&self, id: &Uuid) -> Result<()> {
-        self.execute::<OperationDeletePlugin>(&(), (id,), None)
+    pub async fn delete_plugin(&self, id: &Uuid) -> Result<()> {
+        self.execute::<OperationDeletePlugin>(&(), (id,), None).await
     }
 }
 
@@ -203,8 +203,8 @@ impl Operation for OperationGetPlugin {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn get_plugin(&self, id: &Uuid) -> Result<Plugin> {
-        self.execute::<OperationGetPlugin>(&(), (id,), None)
+    pub async fn get_plugin(&self, id: &Uuid) -> Result<Plugin> {
+        self.execute::<OperationGetPlugin>(&(), (id,), None).await
     }
 }
 
@@ -225,13 +225,13 @@ impl Operation for OperationInvokePlugin {
 }
 
 impl SdkmsClient {
-    pub fn invoke_plugin(&self, id: &Uuid, req: &serde_json::Value) -> Result<PluginOutput> {
-        self.execute::<OperationInvokePlugin>(req, (id,), None)
+    pub async fn invoke_plugin(&self, id: &Uuid, req: &serde_json::Value) -> Result<PluginOutput> {
+        self.execute::<OperationInvokePlugin>(req, (id,), None).await
     }
-    pub fn request_approval_to_invoke_plugin(
+    pub async fn request_approval_to_invoke_plugin(
         &self, id: &Uuid, req: &serde_json::Value,
         description: Option<String>) -> Result<PendingApproval<OperationInvokePlugin>> {
-        self.request_approval::<OperationInvokePlugin>(req, (id,), None, description)
+        self.request_approval::<OperationInvokePlugin>(req, (id,), None, description).await
     }
 }
 
@@ -252,8 +252,8 @@ impl Operation for OperationListPlugins {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn list_plugins(&self, query_params: Option<&ListPluginsParams>) -> Result<Vec<Plugin>> {
-        self.execute::<OperationListPlugins>(&(), (), query_params)
+    pub async fn list_plugins(&self, query_params: Option<&ListPluginsParams>) -> Result<Vec<Plugin>> {
+        self.execute::<OperationListPlugins>(&(), (), query_params).await
     }
 }
 
@@ -274,13 +274,13 @@ impl Operation for OperationUpdatePlugin {
 }
 
 impl SdkmsClient {
-    pub fn update_plugin(&self, id: &Uuid, req: &PluginRequest) -> Result<Plugin> {
-        self.execute::<OperationUpdatePlugin>(req, (id,), None)
+    pub async fn update_plugin(&self, id: &Uuid, req: &PluginRequest) -> Result<Plugin> {
+        self.execute::<OperationUpdatePlugin>(req, (id,), None).await
     }
-    pub fn request_approval_to_update_plugin(
+    pub async fn request_approval_to_update_plugin(
         &self, id: &Uuid, req: &PluginRequest,
         description: Option<String>) -> Result<PendingApproval<OperationUpdatePlugin>> {
-        self.request_approval::<OperationUpdatePlugin>(req, (id,), None, description)
+        self.request_approval::<OperationUpdatePlugin>(req, (id,), None, description).await
     }
 }
 

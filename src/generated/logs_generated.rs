@@ -101,8 +101,8 @@ impl Operation for OperationGetAllLogs {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn get_all_logs(&self, query_params: Option<&LogsParams>) -> Result<EsAuditQueryResponse> {
-        self.execute::<OperationGetAllLogs>(&(), (), query_params)
+    pub async fn get_all_logs(&self, query_params: Option<&LogsParams>) -> Result<EsAuditQueryResponse> {
+        self.execute::<OperationGetAllLogs>(&(), (), query_params).await
     }
 }
 

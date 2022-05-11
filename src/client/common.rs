@@ -5,16 +5,17 @@
 * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::api_model::*;
-use crate::operations::*;
-use headers::{HeaderValue};
-use simple_hyper_client::{Bytes, StatusCode};
-use simple_hyper_client::blocking::Client as HttpClient;
-use serde::{Deserialize};
+use headers::HeaderValue;
+use serde::Deserialize;
+#[cfg(feature = "async")]
+use simple_hyper_client::{Client as HttpClient};
+#[cfg(not(feature = "async"))]
+use simple_hyper_client::blocking::{Client as HttpClient, RequestBuilder};
+use simple_hyper_client::{Bytes};
 use uuid::Uuid;
 
 use std::fmt;
 use std::io::Read;
-use std::marker::PhantomData;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -195,52 +196,21 @@ impl SdkmsClient {
     }
 }
 
-pub struct PendingApproval<O: Operation>(Uuid, PhantomData<O>);
-
-impl<O: Operation> fmt::Debug for PendingApproval<O> {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Debug::fmt(&self.0, formatter)
+pub(super) fn json_decode_bytes< T: for<'de> Deserialize<'de>>(
+    rdr: &[u8],
+) -> serde_json::Result<T> {
+    match serde_json::from_slice(rdr) {
+        // When the body of the response is empty, attempt to deserialize null value instead
+        Err(ref e) if e.is_eof() && e.line() == 1 && e.column() == 0 => {
+            serde_json::from_value(serde_json::Value::Null)
+        }
+        v => v,
     }
 }
 
-impl<O: Operation> PendingApproval<O> {
-    pub fn from_request_id(request_id: Uuid) -> Self {
-        PendingApproval(request_id, PhantomData)
-    }
-
-    pub fn request_id(&self) -> Uuid {
-        self.0
-    }
-
-    pub fn get(&self, sdkms: &SdkmsClient) -> Result<ApprovalRequest> {
-        sdkms.get_approval_request(&self.0)
-    }
-
-    pub fn status(&self, sdkms: &SdkmsClient) -> Result<ApprovalStatus> {
-        Ok(self.get(sdkms)?.status)
-    }
-
-    pub fn result(&self, sdkms: &SdkmsClient) -> Result<Result<O::Output>> {
-        let result = sdkms.get_approval_request_result(&self.0)?;
-        Ok(if result.is_ok() {
-            serde_json::from_value::<O::Output>(result.body).map_err(Error::EncoderError)
-        } else {
-            let msg: String = serde_json::from_value(result.body).map_err(Error::EncoderError)?;
-            Err(Error::from_status(
-                StatusCode::from_u16(result.status).unwrap(),
-                msg,
-            ))
-        })
-    }
-}
-
-impl<O: Operation> Clone for PendingApproval<O> {
-    fn clone(&self) -> Self {
-        PendingApproval(self.0, PhantomData)
-    }
-}
-
-pub(super) fn json_decode_reader<R: Read, T: for<'de> Deserialize<'de>>(rdr: &mut R) -> serde_json::Result<T> {
+pub(super) fn json_decode_reader<R: Read, T: for<'de> Deserialize<'de>>(
+    rdr: &mut R,
+) -> serde_json::Result<T> {
     match serde_json::from_reader(rdr) {
         // When the body of the response is empty, attempt to deserialize null value instead
         Err(ref e) if e.is_eof() && e.line() == 1 && e.column() == 0 => {

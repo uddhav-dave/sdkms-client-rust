@@ -167,8 +167,8 @@ impl Operation for OperationAuthDiscover {
 }
 
 impl SdkmsClient {
-    pub fn auth_discover(&self, query_params: Option<&AuthDiscoverParams>, req: &AuthDiscoverRequest) -> Result<Vec<AuthMethod>> {
-        self.execute::<OperationAuthDiscover>(req, (), query_params)
+    pub async fn auth_discover(&self, query_params: Option<&AuthDiscoverParams>, req: &AuthDiscoverRequest) -> Result<Vec<AuthMethod>> {
+        self.execute::<OperationAuthDiscover>(req, (), query_params).await
     }
 }
 
@@ -189,8 +189,8 @@ impl Operation for OperationAuthenticate {
 }
 
 impl SdkmsClient {
-    pub fn authenticate(&self, req: &AuthRequest) -> Result<AuthResponse> {
-        self.execute::<OperationAuthenticate>(req, (), None)
+    pub async fn authenticate(&self, req: &AuthRequest) -> Result<AuthResponse> {
+        self.execute::<OperationAuthenticate>(req, (), None).await
     }
 }
 
@@ -211,8 +211,8 @@ impl Operation for OperationConfig2faAuth {
 }
 
 impl SdkmsClient {
-    pub fn config_2fa_auth(&self, req: &Config2faAuthRequest) -> Result<Config2faAuthResponse> {
-        self.execute::<OperationConfig2faAuth>(req, (), None)
+    pub async fn config_2fa_auth(&self, req: &Config2faAuthRequest) -> Result<Config2faAuthResponse> {
+        self.execute::<OperationConfig2faAuth>(req, (), None).await
     }
 }
 
@@ -233,8 +233,8 @@ impl Operation for OperationConfig2faTerminate {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn config_2fa_terminate(&self) -> Result<()> {
-        self.execute::<OperationConfig2faTerminate>(&(), (), None)
+    pub async fn config_2fa_terminate(&self) -> Result<()> {
+        self.execute::<OperationConfig2faTerminate>(&(), (), None).await
     }
 }
 
@@ -255,8 +255,8 @@ impl Operation for OperationReauthenticate {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn reauthenticate(&self) -> Result<AuthResponse> {
-        self.execute::<OperationReauthenticate>(&(), (), None)
+    pub async fn reauthenticate(&self) -> Result<AuthResponse> {
+        self.execute::<OperationReauthenticate>(&(), (), None).await
     }
 }
 
@@ -277,8 +277,8 @@ impl Operation for OperationRecoveryCodeAuth {
 }
 
 impl SdkmsClient {
-    pub fn recovery_code_auth(&self, req: &RecoveryCodeAuthRequest) -> Result<()> {
-        self.execute::<OperationRecoveryCodeAuth>(req, (), None)
+    pub async fn recovery_code_auth(&self, req: &RecoveryCodeAuthRequest) -> Result<()> {
+        self.execute::<OperationRecoveryCodeAuth>(req, (), None).await
     }
 }
 
@@ -299,8 +299,8 @@ impl Operation for OperationRefresh {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn refresh(&self) -> Result<()> {
-        self.execute::<OperationRefresh>(&(), (), None)
+    pub async fn refresh(&self) -> Result<()> {
+        self.execute::<OperationRefresh>(&(), (), None).await
     }
 }
 
@@ -321,8 +321,8 @@ impl Operation for OperationSelectAccount {
 }
 
 impl SdkmsClient {
-    pub fn select_account(&self, req: &SelectAccountRequest) -> Result<SelectAccountResponse> {
-        self.execute::<OperationSelectAccount>(req, (), None)
+    pub async fn select_account(&self, req: &SelectAccountRequest) -> Result<SelectAccountResponse> {
+        self.execute::<OperationSelectAccount>(req, (), None).await
     }
 }
 
@@ -343,8 +343,8 @@ impl Operation for OperationSetAwsTemporaryCredentials {
 }
 
 impl SdkmsClient {
-    pub fn set_aws_temporary_credentials(&self, req: &AwsTemporaryCredentials) -> Result<()> {
-        self.execute::<OperationSetAwsTemporaryCredentials>(req, (), None)
+    pub async fn set_aws_temporary_credentials(&self, req: &AwsTemporaryCredentials) -> Result<()> {
+        self.execute::<OperationSetAwsTemporaryCredentials>(req, (), None).await
     }
 }
 
@@ -365,8 +365,8 @@ impl Operation for OperationTerminate {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn terminate(&self) -> Result<()> {
-        self.execute::<OperationTerminate>(&(), (), None)
+    pub async fn terminate(&self) -> Result<()> {
+        self.execute::<OperationTerminate>(&(), (), None).await
     }
 }
 
@@ -387,8 +387,8 @@ impl Operation for OperationU2fAuth {
 }
 
 impl SdkmsClient {
-    pub fn u2f_auth(&self, req: &U2fAuthRequest) -> Result<()> {
-        self.execute::<OperationU2fAuth>(req, (), None)
+    pub async fn u2f_auth(&self, req: &U2fAuthRequest) -> Result<()> {
+        self.execute::<OperationU2fAuth>(req, (), None).await
     }
 }
 
@@ -409,8 +409,8 @@ impl Operation for OperationU2fNewChallenge {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn u2f_new_challenge(&self) -> Result<MfaChallengeResponse> {
-        self.execute::<OperationU2fNewChallenge>(&(), (), None)
+    pub async fn u2f_new_challenge(&self) -> Result<MfaChallengeResponse> {
+        self.execute::<OperationU2fNewChallenge>(&(), (), None).await
     }
 }
 

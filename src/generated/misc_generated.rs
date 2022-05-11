@@ -95,8 +95,8 @@ impl Operation for OperationGetHealth {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn get_health(&self, query_params: Option<&HealthParams>) -> Result<()> {
-        self.execute::<OperationGetHealth>(&(), (), query_params)
+    pub async fn get_health(&self, query_params: Option<&HealthParams>) -> Result<()> {
+        self.execute::<OperationGetHealth>(&(), (), query_params).await
     }
 }
 
@@ -117,8 +117,8 @@ impl Operation for OperationLdapSearch {
 }
 
 impl SdkmsClient {
-    pub fn ldap_search(&self, id: &Uuid, req: &LdapSearchRequest) -> Result<Vec<LdapSearchResultEntry>> {
-        self.execute::<OperationLdapSearch>(req, (id,), None)
+    pub async fn ldap_search(&self, id: &Uuid, req: &LdapSearchRequest) -> Result<Vec<LdapSearchResultEntry>> {
+        self.execute::<OperationLdapSearch>(req, (id,), None).await
     }
 }
 
@@ -139,8 +139,8 @@ impl Operation for OperationSamlSpMetadata {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub fn saml_sp_metadata(&self) -> Result<Vec<u8>> {
-        self.execute::<OperationSamlSpMetadata>(&(), (), None)
+    pub async fn saml_sp_metadata(&self) -> Result<Vec<u8>> {
+        self.execute::<OperationSamlSpMetadata>(&(), (), None).await
     }
 }
 
@@ -161,8 +161,8 @@ impl Operation for OperationTestLdapConfig {
 }
 
 impl SdkmsClient {
-    pub fn test_ldap_config(&self, req: &LdapTestRequest) -> Result<()> {
-        self.execute::<OperationTestLdapConfig>(req, (), None)
+    pub async fn test_ldap_config(&self, req: &LdapTestRequest) -> Result<()> {
+        self.execute::<OperationTestLdapConfig>(req, (), None).await
     }
 }
 
