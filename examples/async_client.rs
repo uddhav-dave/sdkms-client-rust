@@ -12,6 +12,7 @@ async fn main() -> Result<(), SdkmsError> {
     let client = SdkmsClient::builder()
         .with_api_endpoint("https://sdkms.fortanix.com")
         .with_api_key(MY_API_KEY)
+        .user_agent("sdkms-test-agent")
         .build()?;
 
     let encrypt_req = EncryptRequest {

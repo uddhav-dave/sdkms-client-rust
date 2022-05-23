@@ -112,6 +112,7 @@ impl SdkmsClient {
             Method::POST,
             "/sys/v1/session/auth",
             auth,
+            None,
             None::<&()>,
         ).await?;
         Ok(SdkmsClient {
@@ -120,6 +121,7 @@ impl SdkmsClient {
             auth: Some(Auth::Bearer(auth_response.access_token.clone())),
             last_used: AtomicU64::new(now().0),
             auth_response: Some(auth_response),
+            header: None,
         })
     }
 
@@ -150,7 +152,7 @@ impl SdkmsClient {
             ref auth,
             ..
         } = *self;
-        let result = json_request_with_auth(client, api_endpoint, method, uri, auth.as_ref(), req).await?;
+        let result = json_request_with_auth(client, api_endpoint, method, uri, auth.as_ref(), self.header.as_ref(), req).await?;
         self.last_used.store(now().0, Ordering::Relaxed);
         Ok(result)
     }
@@ -162,6 +164,7 @@ async fn json_request_with_auth<E, D>(
     method: Method,
     path: &str,
     auth: Option<&Auth>,
+    head: Option<&HeaderMap>,
     body: Option<&E>,
 ) -> Result<D>
 where
@@ -170,7 +173,7 @@ where
 {
     let url = format!("{}{}", api_endpoint, path);
     let mut req = client.request(method.clone(), &url)?;
-    let mut headers = HeaderMap::new();
+    let mut headers = head.unwrap_or(&HeaderMap::new()).clone();
     if let Some(auth) = auth {
         headers.insert(AUTHORIZATION, auth.format_header());
     }
@@ -187,7 +190,6 @@ where
         }
         Ok(ref mut res) if res.status().is_success() => {
             info!("{} {} {}", res.status().as_u16(), method, url);
-            //TODO Remove Unwrap
             json_decode_bytes(&mut to_bytes(res.body_mut()).await.expect("Could not convert Body to bytes")).map_err(|err| Error::EncoderError(err))
         }
         Ok(ref mut res) => {

@@ -5,8 +5,9 @@
 * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::api_model::*;
-use headers::HeaderValue;
+use headers::{HeaderValue, HeaderMap};
 use serde::Deserialize;
+use simple_hyper_client::hyper::header::*;
 #[cfg(feature = "async")]
 use simple_hyper_client::{Client as HttpClient};
 #[cfg(not(feature = "async"))]
@@ -14,6 +15,7 @@ use simple_hyper_client::blocking::{Client as HttpClient, RequestBuilder};
 use simple_hyper_client::{Bytes};
 use uuid::Uuid;
 
+use std::convert::TryInto;
 use std::fmt;
 use std::io::Read;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -53,12 +55,27 @@ pub struct SdkmsClientBuilder {
     client: Option<HttpClient>,
     api_endpoint: Option<String>,
     auth: Option<Auth>,
+    headers: Option<HeaderMap>,
 }
 
 impl SdkmsClientBuilder {
     /// This can be used to customize the underlying HTTP client if desired.
     pub fn with_http_client(mut self, client: HttpClient) -> Self {
         self.client = Some(client);
+        self
+    }
+    pub fn user_agent<V>(mut self, value: V) -> Self 
+    where
+        V: TryInto<HeaderValue>,
+    {
+        let mut header = HeaderMap::new();
+        match value.try_into() {
+            Ok(value) => {
+                header.append(USER_AGENT, value);
+            },
+            Err(_) => panic!(),
+        }
+        self.headers = Some(header);
         self
     }
     /// This can be used to set the API endpoint. Otherwise the [default endpoint](./constant.DEFAULT_API_ENDPOINT.html) is used.
@@ -95,6 +112,11 @@ impl SdkmsClientBuilder {
                 panic!("You should either provide an HTTP Client or compile this crate with native-tls feature");
             }
         };
+        
+        let header = match self.headers {
+            None => None,
+            _ => self.headers
+        };
 
         Ok(SdkmsClient {
             client,
@@ -104,6 +126,7 @@ impl SdkmsClientBuilder {
             auth: self.auth,
             last_used: AtomicU64::new(0),
             auth_response: None,
+            header,
         })
     }
 }
@@ -151,6 +174,7 @@ pub struct SdkmsClient {
     pub(super) client: HttpClient,
     pub(super) last_used: AtomicU64, // Time.0
     pub(super) auth_response: Option<AuthResponse>,
+    pub(super) header: Option<HeaderMap>,
 }
 
 impl SdkmsClient {
@@ -159,6 +183,7 @@ impl SdkmsClient {
             client: None,
             api_endpoint: None,
             auth: None,
+            headers: None,
         }
     }
 

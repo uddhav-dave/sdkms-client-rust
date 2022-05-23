@@ -107,7 +107,7 @@ pub struct AccountRequest {
     #[serde(default)]
     pub country: Option<String>,
     #[serde(default)]
-    pub cryptographic_policy: Option<Option<CryptographicPolicy>>,
+    pub cryptographic_policy: Option<CryptographicPolicy>,
     #[serde(default)]
     pub custom_logo: Option<Blob>,
     #[serde(default)]
@@ -123,9 +123,9 @@ pub struct AccountRequest {
     #[serde(default)]
     pub enabled: Option<bool>,
     #[serde(default)]
-    pub key_history_policy: Option<Option<KeyHistoryPolicy>>,
+    pub key_history_policy: Option<KeyHistoryPolicy>,
     #[serde(default)]
-    pub key_metadata_policy: Option<Option<KeyMetadataPolicy>>,
+    pub key_metadata_policy: Option<KeyMetadataPolicy>,
     #[serde(default)]
     pub log_bad_requests: Option<bool>,
     #[serde(default)]
@@ -149,7 +149,7 @@ pub struct AccountRequest {
     #[serde(default)]
     pub subscription: Option<Subscription>,
     #[serde(default)]
-    pub workspace_cse_config: Option<Option<WorkspaceCseConfig>>
+    pub workspace_cse_config: Option<WorkspaceCseConfig>
 }
 
 #[derive(PartialEq, Eq, Debug, Default, Serialize, Deserialize, Clone)]

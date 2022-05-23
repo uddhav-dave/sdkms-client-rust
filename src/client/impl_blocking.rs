@@ -3,6 +3,8 @@ use crate::operations::*;
 
 use super::common::*;
 use super::SdkmsClient;
+use std::fmt;
+use std::marker::PhantomData;
 use headers::{ContentType, HeaderMap, HeaderMapExt};
 use serde::{Deserialize, Serialize};
 use simple_hyper_client::blocking::Client as HttpClient;
@@ -65,6 +67,7 @@ impl SdkmsClient {
             Method::POST,
             "/sys/v1/session/auth",
             auth,
+            None, 
             None::<&()>,
         )?;
         Ok(SdkmsClient {
@@ -73,6 +76,7 @@ impl SdkmsClient {
             auth: Some(Auth::Bearer(auth_response.access_token.clone())),
             last_used: AtomicU64::new(now().0),
             auth_response: Some(auth_response),
+            header: None,
         })
     }
 
@@ -158,6 +162,7 @@ fn json_request_with_auth<E, D>(
     method: Method,
     path: &str,
     auth: Option<&Auth>,
+    head: Option<&HeaderMap>,
     body: Option<&E>,
 ) -> Result<D>
 where
@@ -166,7 +171,7 @@ where
 {
     let url = format!("{}{}", api_endpoint, path);
     let mut req = client.request(method.clone(), &url)?;
-    let mut headers = HeaderMap::new();
+    let mut headers = head.unwrap_or(&HeaderMap::new()).clone();
     if let Some(auth) = auth {
         headers.insert(AUTHORIZATION, auth.format_header());
     }

@@ -165,10 +165,10 @@ pub struct ClientConfigurations {
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct ClientConfigurationsRequest {
-    pub common: Option<Option<CommonClientConfig>>,
-    pub pkcs11: Option<Option<Pkcs11ClientConfig>>,
-    pub kmip: Option<Option<KmipClientConfig>>,
-    pub tep: Option<Option<TepClientConfig>>
+    pub common: Option<CommonClientConfig>,
+    pub pkcs11: Option<Pkcs11ClientConfig>,
+    pub kmip: Option<KmipClientConfig>,
+    pub tep: Option<TepClientConfig>
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
@@ -1438,7 +1438,7 @@ pub struct TepClientConfig {
     pub key_map: TepKeyMapList
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Hash, Copy)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum TepKeyContext {
     Request,
