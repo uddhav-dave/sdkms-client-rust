@@ -16,7 +16,7 @@ edition = "2018"
 [features]
 default = ["native-tls"]
 native-tls = ["simple-hyper-client/native-tls", "tokio-native-tls"]
-async = ["tokio"]
+async = []
 
 [dependencies]
 base64 = "0.13"
@@ -32,8 +32,12 @@ url = "1.7"
 uuid = { version = "0.8", features = ["serde", "v4"] }
 strum = { version = "0.21", features = ["derive"] }
 openapiv3 = { version = "1.0.1" }
-tokio = {version = "1.18.2", optional = true, features=["full"] }
 
 [dev-dependencies]
 env_logger = "0.6"
 rand = "0.6"
+tokio = {version = "1.18.2", features=["full"] }
+
+[[example]]
+name = "async_client"
+required-features = ["async"]
