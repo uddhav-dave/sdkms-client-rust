@@ -141,7 +141,7 @@ pub struct GroupRequest {
     #[serde(default)]
     pub client_configurations: Option<ClientConfigurationsRequest>,
     #[serde(default)]
-    pub cryptographic_policy: Option<CryptographicPolicy>,
+    pub cryptographic_policy: Option<Removable<CryptographicPolicy>>,
     #[serde(default)]
     pub custodian_policy: Option<QuorumPolicy>,
     #[serde(default)]
@@ -157,9 +157,9 @@ pub struct GroupRequest {
     #[serde(default)]
     pub hmg_sync: Option<bool>,
     #[serde(default)]
-    pub key_history_policy: Option<KeyHistoryPolicy>,
+    pub key_history_policy: Option<Removable<KeyHistoryPolicy>>,
     #[serde(default)]
-    pub key_metadata_policy: Option<KeyMetadataPolicy>,
+    pub key_metadata_policy: Option<Removable<KeyMetadataPolicy>>,
     #[serde(default)]
     pub mod_hmg: Option<HashMap<Uuid,HmgConfig>>,
     #[serde(default)]

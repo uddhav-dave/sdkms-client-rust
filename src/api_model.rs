@@ -545,6 +545,43 @@ impl UrlEncode for CustomMetadata {
         }
     }
 }
+
+#[derive(Clone, Debug)]
+pub enum Removable<T> {
+    Keep(T),
+    Remove,
+}
+
+mod removable_serde_impl {
+    use serde_json::Value;
+
+    use super::*;
+
+    impl<'de, T: for<'a> Deserialize<'a>> Deserialize<'de> for Removable<T> {
+        fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+            let value = Value::deserialize(deserializer)?;
+            match value {
+                Value::String(ref v) if v == "remove" => return Ok(Removable::Remove),
+                Value::String(ref v) => return Err(D::Error::custom(format!("unknown variant `{}`, expected `remove` or other supported type", v))),
+                _ => {}
+            }
+            match T::deserialize(value) {
+                Ok(val) => Ok(Removable::Keep(val)),
+                Err(e) => Err(D::Error::custom(e)),
+            }
+        }
+    }
+
+    impl<T: Serialize + Clone> Serialize for Removable<T> {
+        fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+            match self {
+                Removable::Remove => "remove".serialize(serializer),
+                Removable::Keep(t) => t.serialize(serializer),
+            }
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct GetAllResponse {
     pub metadata: Option<Metadata>,
