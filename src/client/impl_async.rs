@@ -186,18 +186,18 @@ where
     req = req.headers(headers);
     match req.send().await {
         Err(e) => {
-            info!("Error {} {}", method, url);
+            debug!("Error {} {}", method, url);
             Err(Error::NetworkError(e))
         }
         Ok(res) if res.status().is_success() => {
-            info!("{} {} {}", res.status().as_u16(), method, url);
+            debug!("{} {} {}", res.status().as_u16(), method, url);
             let body = res.into_body();
             let body = aggregate(body).await.map_err(Into::<simple_hyper_client::Error>::into)?;
             let body: D = json_decode_reader(body.reader()).map_err(|err| Error::EncoderError(err))?;
             return Ok(body);
         }
         Ok(res) => {
-            info!("{} {} {}", res.status().as_u16(), method, url);
+            debug!("{} {} {}", res.status().as_u16(), method, url);
             let status = res.status();
             let body = aggregate(res).await.map_err(Into::<simple_hyper_client::Error>::into)?;
             let mut buffer = String::new();
