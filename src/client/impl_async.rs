@@ -4,11 +4,12 @@ use super::common::*;
 
 use super::SdkmsClient;
 use std::fmt;
+use std::io::Read;
 use std::marker::PhantomData;
 use std::sync::atomic::{AtomicU64, Ordering};
 use headers::HeaderMapExt;
 use headers::{ContentType, HeaderMap};
-use simple_hyper_client::to_bytes;
+use simple_hyper_client::{aggregate, Buf};
 use uuid::Uuid;
 use simple_hyper_client::Client as HttpClient;
 use simple_hyper_client::{Method, StatusCode};
@@ -188,14 +189,20 @@ where
             info!("Error {} {}", method, url);
             Err(Error::NetworkError(e))
         }
-        Ok(ref mut res) if res.status().is_success() => {
+        Ok(res) if res.status().is_success() => {
             info!("{} {} {}", res.status().as_u16(), method, url);
-            json_decode_bytes(&mut to_bytes(res.body_mut()).await.expect("Could not convert Body to bytes")).map_err(|err| Error::EncoderError(err))
+            let body = res.into_body();
+            let body = aggregate(body).await.map_err(Into::<simple_hyper_client::Error>::into)?;
+            let body: D = json_decode_reader(body.reader()).map_err(|err| Error::EncoderError(err))?;
+            return Ok(body);
         }
-        Ok(ref mut res) => {
+        Ok(res) => {
             info!("{} {} {}", res.status().as_u16(), method, url);
-            let buffer = String::from_utf8(to_bytes(res.body_mut()).await.expect("Could not convert to Bytes").to_vec()).unwrap();
-            Err(Error::from_status(res.status(), buffer))
+            let status = res.status();
+            let body = aggregate(res).await.map_err(Into::<simple_hyper_client::Error>::into)?;
+            let mut buffer = String::new();
+            body.reader().read_to_string(&mut buffer).map_err(|err| Error::IoError(err))?;
+            return Err(Error::from_status(status, buffer))
         }
     }
 }

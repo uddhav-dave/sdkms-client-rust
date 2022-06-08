@@ -11,7 +11,7 @@ use simple_hyper_client::hyper::header::*;
 #[cfg(feature = "async")]
 use simple_hyper_client::{Client as HttpClient};
 #[cfg(not(feature = "async"))]
-use simple_hyper_client::blocking::{Client as HttpClient, RequestBuilder};
+use simple_hyper_client::blocking::{Client as HttpClient};
 use simple_hyper_client::{Bytes};
 use uuid::Uuid;
 
@@ -64,6 +64,7 @@ impl SdkmsClientBuilder {
         self.client = Some(client);
         self
     }
+    //This can be used to set a default user_agent 
     pub fn user_agent<V>(mut self, value: V) -> Self 
     where
         V: TryInto<HeaderValue>,
@@ -221,20 +222,8 @@ impl SdkmsClient {
     }
 }
 
-pub(super) fn json_decode_bytes< T: for<'de> Deserialize<'de>>(
-    rdr: &[u8],
-) -> serde_json::Result<T> {
-    match serde_json::from_slice(rdr) {
-        // When the body of the response is empty, attempt to deserialize null value instead
-        Err(ref e) if e.is_eof() && e.line() == 1 && e.column() == 0 => {
-            serde_json::from_value(serde_json::Value::Null)
-        }
-        v => v,
-    }
-}
-
 pub(super) fn json_decode_reader<R: Read, T: for<'de> Deserialize<'de>>(
-    rdr: &mut R,
+    rdr: R,
 ) -> serde_json::Result<T> {
     match serde_json::from_reader(rdr) {
         // When the body of the response is empty, attempt to deserialize null value instead

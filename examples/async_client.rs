@@ -1,6 +1,10 @@
+//! Run using `cargo run --example async_client --features async`
+//! 
 use sdkms::api_model::*;
 use sdkms::SdkmsClient;
 use sdkms::Error as SdkmsError;
+
+use log::*;
 
 const MY_API_KEY: &'static str = "ASDVSD....";
 const KEY_NAME: &'static str = "AES Key";
@@ -38,9 +42,9 @@ async fn main() -> Result<(), SdkmsError> {
     };
     let decrypt_resp = client.decrypt(&decrypt_req).await?;
     let plain = String::from_utf8(decrypt_resp.plain.into()).expect("valid utf8");
-    println!("{}", plain);
+    debug!("{}", plain);
 
     let client_config = client.get_client_configs().await?;
-    println!("{:?}", client_config);
+    debug!("{:?}", client_config);
     Ok(())
 }

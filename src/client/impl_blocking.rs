@@ -9,7 +9,7 @@ use headers::{ContentType, HeaderMap, HeaderMapExt};
 use serde::{Deserialize, Serialize};
 use simple_hyper_client::blocking::Client as HttpClient;
 use simple_hyper_client::hyper::header::AUTHORIZATION;
-use simple_hyper_client::Method;
+use simple_hyper_client::{Method, StatusCode};
 use std::io::Read;
 use std::sync::atomic::{AtomicU64, Ordering};
 use uuid::Uuid;
@@ -107,7 +107,7 @@ impl SdkmsClient {
             ref auth,
             ..
         } = *self;
-        let result = json_request_with_auth(client, api_endpoint, method, uri, auth.as_ref(), req)?;
+        let result = json_request_with_auth(client, api_endpoint, method, uri, auth.as_ref(), self.header.as_ref(), req)?;
         self.last_used.store(now().0, Ordering::Relaxed);
         Ok(result)
     }
