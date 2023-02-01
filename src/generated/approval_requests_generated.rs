@@ -24,6 +24,7 @@ pub struct ApprovalRequest {
     pub operation: String,
     pub request_id: Uuid,
     pub requester: Principal,
+    pub result_viewed: bool,
     #[serde(default)]
     pub reviewers: Option<Vec<Reviewer>>,
     pub status: ApprovalStatus,
@@ -72,15 +73,20 @@ pub enum ApprovalSubject {
     Account (
         Uuid
     ),
-    NewAccount
+    NewAccount,
+    Role (
+        Uuid
+    )
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct ApproveRequest {
     /// Password is required if the approval policy requires password authentication.
     pub password: Option<String>,
-    /// U2F is required if the approval policy requires two factor authentication.
+    /// U2F assertion is required if the approval policy requires two factor authentication.
     pub u2f: Option<U2fAuthRequest>,
+    /// FIDO2 assertion is required if the approval policy requires two factor authentication.
+    pub fido2_auth_request: Option<PublicKeyCredential<AuthenticatorAssertionResponse>>,
     /// Data associated with the approval
     #[serde(default)]
     pub body: Option<serde_json::Value>
@@ -122,9 +128,9 @@ pub struct Reviewer {
     #[serde(flatten)]
     pub entity: ReviewerPrincipal,
     #[serde(default)]
-    pub requires_password: bool,
+    pub requires_password: Option<bool>,
     #[serde(default)]
-    pub requires_2fa: bool
+    pub requires_2fa: Option<bool>
 }
 
 /// A Principal who can approve or deny an approval request.
@@ -297,7 +303,7 @@ pub struct OperationMfaChallenge;
 #[allow(unused)]
 impl Operation for OperationMfaChallenge {
     type PathParams = (Uuid,);
-    type QueryParams = ();
+    type QueryParams = MfaChallengeParams;
     type Body = ();
     type Output = MfaChallengeResponse;
 
@@ -305,13 +311,13 @@ impl Operation for OperationMfaChallenge {
         Method::POST
     }
     fn path(p: <Self::PathParams as TupleRef>::Ref, q: Option<&Self::QueryParams>) -> String {
-        format!("/sys/v1/approval_requests/{id}/challenge", id = p.0)
+        format!("/sys/v1/approval_requests/{id}/challenge?{q}", id = p.0, q = q.encode())
     }
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub async fn mfa_challenge(&self, id: &Uuid) -> Result<MfaChallengeResponse> {
-        self.execute::<OperationMfaChallenge>(&(), (id,), None).await
+    pub async fn mfa_challenge(&self, id: &Uuid, query_params: Option<&MfaChallengeParams>) -> Result<MfaChallengeResponse> {
+        self.execute::<OperationMfaChallenge>(&(), (id,), query_params).await
     }
 }
 

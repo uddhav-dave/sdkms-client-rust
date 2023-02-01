@@ -173,26 +173,26 @@ where
     let mut req = client.request(method.clone(), &url)?;
     let mut headers = head.unwrap_or(&HeaderMap::new()).clone();
     if let Some(auth) = auth {
-        headers.insert(AUTHORIZATION, auth.format_header());
+        headers.insert(AUTHORIZATION, auth.format_header()?);
     }
     if let Some(request_body) = body {
         headers.typed_insert(ContentType::json());
         let body = serde_json::to_string(request_body).map_err(Error::EncoderError)?;
         req = req.body(body);
     }
-    // dbg!(&headers);
     req = req.headers(headers);
+
     match req.send() {
         Err(e) => {
-            debug!("Error {} {}", method, url);
+            info!("Error {} {}", method, url);
             Err(Error::NetworkError(e))
         }
         Ok(ref mut res) if res.status().is_success() => {
-            debug!("{} {} {}", res.status().as_u16(), method, url);
+            info!("{} {} {}", res.status().as_u16(), method, url);
             json_decode_reader(res.body_mut()).map_err(|err| Error::EncoderError(err))
         }
         Ok(ref mut res) => {
-            debug!("{} {} {}", res.status().as_u16(), method, url);
+            info!("{} {} {}", res.status().as_u16(), method, url);
             let mut buffer = String::new();
             res.body_mut()
                 .read_to_string(&mut buffer)

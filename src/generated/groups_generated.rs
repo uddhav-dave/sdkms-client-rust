@@ -89,11 +89,43 @@ pub struct GcpKeyRingConfig {
     pub private_key: Option<Blob>
 }
 
+/// Information about a group's recent scans.
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
+pub struct GetAllHmgScansResponse {
+    /// List of all tracked scans, from newest to oldest.
+    pub items: Vec<Scan>
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct GetGroupsParams {
+    #[serde(default)]
+    pub limit: Option<usize>,
+    #[serde(flatten)]
+    pub sort_by: Option<GroupSort>,
+    #[serde(default)]
+    pub filter: Option<String>
+}
+
+impl UrlEncode for GetGroupsParams {
+    fn url_encode(&self, m: &mut HashMap<String, String>) {
+        if let Some(ref v) = self.limit {
+            m.insert("limit".to_string(), v.to_string());
+        }
+        self.sort_by.url_encode(m);
+        if let Some(ref v) = self.filter {
+            m.insert("filter".to_string(), v.to_string());
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Group {
     pub acct_id: Uuid,
     #[serde(default)]
     pub approval_policy: Option<GroupApprovalPolicy>,
+    /// Settings for automatic key scanning. For now, this is only available for DSM-backed groups.
+    #[serde(default)]
+    pub auto_scan: Option<HmgAutoScan>,
     pub client_configurations: ClientConfigurations,
     pub created_at: Time,
     pub creator: Principal,
@@ -118,7 +150,10 @@ pub struct Group {
     pub key_history_policy: Option<KeyHistoryPolicy>,
     #[serde(default)]
     pub key_metadata_policy: Option<KeyMetadataPolicy>,
-    pub name: String
+    pub name: String,
+    /// Name of an AES key from another group. The key will be used to encrypt the key material of all keys in this group
+    #[serde(default)]
+    pub wrapping_key_name: Option<WrappingKeyName>
 }
 
 /// Group approval policy.
@@ -126,8 +161,12 @@ pub struct Group {
 pub struct GroupApprovalPolicy {
     #[serde(flatten)]
     pub policy: QuorumPolicy,
+    /// Deprecated, left this for backward compatibility.
     /// When this is true, manage operations on security objects require approval.
+    #[serde(default)]
     pub protect_manage_operations: Option<bool>,
+    /// Use QuorumGroupPermissions to represent operations that require approval.
+    pub protect_permissions: Option<QuorumGroupPermissions>,
     /// When this is true, cryptographic operations on security objects require approval.
     pub protect_crypto_operations: Option<bool>
 }
@@ -138,6 +177,9 @@ pub struct GroupRequest {
     pub add_hmg: Option<Vec<HmgConfig>>,
     #[serde(default)]
     pub approval_policy: Option<GroupApprovalPolicy>,
+    /// Settings for automatic key scanning. For now, this is only available for DSM-backed groups.
+    #[serde(default)]
+    pub auto_scan: Option<Removable<HmgAutoScan>>,
     #[serde(default)]
     pub client_configurations: Option<ClientConfigurationsRequest>,
     #[serde(default)]
@@ -163,7 +205,39 @@ pub struct GroupRequest {
     #[serde(default)]
     pub mod_hmg: Option<HashMap<Uuid,HmgConfig>>,
     #[serde(default)]
-    pub name: Option<String>
+    pub name: Option<String>,
+    /// Name of an AES key from another group. The key will be used to encrypt the key material of all keys in this group
+    #[serde(default)]
+    pub wrapping_key_name: Option<WrappingKeyName>
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
+pub enum GroupSort {
+    ByGroupId {
+        order: Order,
+        start: Option<Uuid>
+    }
+}
+
+impl UrlEncode for GroupSort {
+    fn url_encode(&self, m: &mut HashMap<String, String>) {
+        match *self {
+            GroupSort::ByGroupId{ ref order, ref start } => {
+                m.insert("sort".to_string(), format!("group_id:{}", order));
+                if let Some(v) = start {
+                    m.insert("start".to_string(), v.to_string());
+                }
+            }
+        }
+    }
+}
+
+/// Settings for automatic scanning in externally-backed groups. Today, this is only
+/// applicable for DSM-backed groups.
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
+pub struct HmgAutoScan {
+    /// The number of hours between successive automatic scans. Must be greater than 0.
+    pub scan_interval_hours: u8
 }
 
 #[derive(PartialEq, Eq, Hash, Debug, Serialize, Deserialize, Clone)]
@@ -218,7 +292,9 @@ pub enum HmgConfig {
         url: String,
         tls: TlsConfig,
         #[serde(default)]
-        pin: Option<String>
+        pin: Option<String>,
+        #[serde(default)]
+        credentials: Option<Vec<String>>
     },
     AzureKeyVault {
         url: String,
@@ -254,9 +330,110 @@ pub struct KeyVault {
     pub uri: String
 }
 
+/// Subset of GroupPermissions to represent GroupPermissions flags in use
+pub use self::quorum_group_permissions::QuorumGroupPermissions;
+pub mod quorum_group_permissions {
+    bitflags_set!{
+        pub struct QuorumGroupPermissions: u64 {
+            const GET_SOBJECTS = 0x0000000000000001;
+            const ROTATE_SOBJECTS = 0x0000000000000002;
+            const REVOKE_SOBJECTS = 0x0000000000000004;
+            const REVERT_SOBJECTS = 0x0000000000000008;
+            const DELETE_KEY_MATERIAL = 0x0000000000000010;
+            const DELETE_SOBJECTS = 0x0000000000000020;
+            const DESTROY_SOBJECTS = 0x0000000000000040;
+            const MOVE_SOBJECTS = 0x0000000000000080;
+            const CREATE_SOBJECTS = 0x0000000000000100;
+            const UPDATE_SOBJECTS_PROFILE = 0x0000000000000200;
+            const UPDATE_SOBJECTS_ENABLED_STATE = 0x0000000000000400;
+            const UPDATE_SOBJECT_POLICIES = 0x0000000000000800;
+            const ACTIVATE_SOBJECTS = 0x0000000000001000;
+            const UPDATE_KEY_OPS = 0x0000000000002000;
+        }
+    }
+}
+
+/// An object for representing a scan of objects from a source HSM,
+/// DSM cluster, or cloud KMS.
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
+pub struct Scan {
+    /// The ID of the scan.
+    pub scan_id: Uuid,
+    /// Whether the scan is async or not.
+    pub is_async: bool,
+    /// The time the scan began.
+    pub started_at: Time,
+    /// The time the scan finished.
+    #[serde(default)]
+    pub finished_at: Option<Time>,
+    /// The "return status" of the scan.
+    #[serde(default)]
+    pub scan_result: Option<ScanResult>,
+    /// Any warnings thrown during the scan.
+    #[serde(default)]
+    pub warnings: Option<Vec<ScanWarning>>
+}
+
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub struct ScanHmgRequest {
-    pub config: Option<HmgConfig>
+
+}
+
+/// The result of a scan.
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
+#[serde(tag = "$type", rename = "snake_case")]
+pub enum ScanResult {
+    /// Indicates that a scan completed successfully.
+    Success,
+    /// Indicates that a scan has failed. The most recent error is included
+    /// (taken from the last retry).
+    Failed {
+        message: String
+    }
+}
+
+/// A warning "thrown" by a scan.
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
+pub struct ScanWarning {
+    /// The ID of the source key for which the warning applies to.
+    #[serde(default)]
+    pub source_key_id: Option<Uuid>,
+    /// The ID of the virtual key for which the warning applies to.
+    #[serde(default)]
+    pub virtual_key_id: Option<Uuid>,
+    /// The warning message associated with the warning.
+    pub message: String
+}
+
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize, Clone)]
+#[serde(untagged)]
+pub enum WrappingKeyName {
+    Null,
+    Value (
+        String
+    )
+}
+
+pub struct OperationAsyncScanHmg;
+#[allow(unused)]
+impl Operation for OperationAsyncScanHmg {
+    type PathParams = (Uuid,);
+    type QueryParams = ();
+    type Body = ();
+    type Output = Scan;
+
+    fn method() -> Method {
+        Method::POST
+    }
+    fn path(p: <Self::PathParams as TupleRef>::Ref, q: Option<&Self::QueryParams>) -> String {
+        format!("/sys/v1/groups/{id}/hmg/scans", id = p.0)
+    }
+    fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
+
+impl SdkmsClient {
+    pub async fn async_scan_hmg(&self, id: &Uuid) -> Result<Scan> {
+        self.execute::<OperationAsyncScanHmg>(&(), (id,), None).await
+    }
 }
 
 pub struct OperationCheckHmg;
@@ -323,6 +500,11 @@ impl SdkmsClient {
     pub async fn create_group(&self, req: &GroupRequest) -> Result<Group> {
         self.execute::<OperationCreateGroup>(req, (), None).await
     }
+    pub async fn request_approval_to_create_group(
+        &self, req: &GroupRequest,
+        description: Option<String>) -> Result<PendingApproval<OperationCreateGroup>> {
+        self.request_approval::<OperationCreateGroup>(req, (), None, description).await
+    }
 }
 
 pub struct OperationDeleteGroup;
@@ -344,6 +526,28 @@ impl Operation for OperationDeleteGroup {
 impl SdkmsClient {
     pub async fn delete_group(&self, id: &Uuid) -> Result<()> {
         self.execute::<OperationDeleteGroup>(&(), (id,), None).await
+    }
+}
+
+pub struct OperationGetAllHmgScans;
+#[allow(unused)]
+impl Operation for OperationGetAllHmgScans {
+    type PathParams = (Uuid,);
+    type QueryParams = ();
+    type Body = ();
+    type Output = GetAllHmgScansResponse;
+
+    fn method() -> Method {
+        Method::GET
+    }
+    fn path(p: <Self::PathParams as TupleRef>::Ref, q: Option<&Self::QueryParams>) -> String {
+        format!("/sys/v1/groups/{id}/hmg/scans", id = p.0)
+    }
+    fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
+
+impl SdkmsClient {
+    pub async fn get_all_hmg_scans(&self, id: &Uuid) -> Result<GetAllHmgScansResponse> {
+        self.execute::<OperationGetAllHmgScans>(&(), (id,), None).await
     }
 }
 
@@ -391,6 +595,28 @@ impl SdkmsClient {
     }
 }
 
+pub struct OperationGetScan;
+#[allow(unused)]
+impl Operation for OperationGetScan {
+    type PathParams = (Uuid, Uuid,);
+    type QueryParams = ();
+    type Body = ();
+    type Output = Scan;
+
+    fn method() -> Method {
+        Method::GET
+    }
+    fn path(p: <Self::PathParams as TupleRef>::Ref, q: Option<&Self::QueryParams>) -> String {
+        format!("/sys/v1/groups/{id}/hmg/scans/{scan_id}", id = p.0, scan_id = p.1)
+    }
+    fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
+
+impl SdkmsClient {
+    pub async fn get_scan(&self, id: &Uuid, scan_id: &Uuid) -> Result<Scan> {
+        self.execute::<OperationGetScan>(&(), (id, scan_id,), None).await
+    }
+}
+
 pub struct OperationGetVaults;
 #[allow(unused)]
 impl Operation for OperationGetVaults {
@@ -417,7 +643,7 @@ pub struct OperationListGroups;
 #[allow(unused)]
 impl Operation for OperationListGroups {
     type PathParams = ();
-    type QueryParams = ();
+    type QueryParams = GetGroupsParams;
     type Body = ();
     type Output = Vec<Group>;
 
@@ -425,13 +651,13 @@ impl Operation for OperationListGroups {
         Method::GET
     }
     fn path(p: <Self::PathParams as TupleRef>::Ref, q: Option<&Self::QueryParams>) -> String {
-        format!("/sys/v1/groups")
+        format!("/sys/v1/groups?{q}", q = q.encode())
     }
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub async fn list_groups(&self) -> Result<Vec<Group>> {
-        self.execute::<OperationListGroups>(&(), (), None).await
+    pub async fn list_groups(&self, query_params: Option<&GetGroupsParams>) -> Result<Vec<Group>> {
+        self.execute::<OperationListGroups>(&(), (), query_params).await
     }
 }
 

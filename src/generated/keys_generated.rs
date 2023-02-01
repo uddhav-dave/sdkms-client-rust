@@ -38,20 +38,30 @@ pub struct ExportSobjectComponentsRequest {
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct GetSobjectParams {
-    pub view: SobjectEncoding,
-    pub show_destroyed: bool,
-    pub show_deleted: bool,
-    pub show_value: bool,
-    pub show_pub_key: bool
+    pub view: Option<SobjectEncoding>,
+    pub show_destroyed: Option<bool>,
+    pub show_deleted: Option<bool>,
+    pub show_value: Option<bool>,
+    pub show_pub_key: Option<bool>
 }
 
 impl UrlEncode for GetSobjectParams {
     fn url_encode(&self, m: &mut HashMap<String, String>) {
-        m.insert("view".to_string(), self.view.to_string());
-        m.insert("show_destroyed".to_string(), self.show_destroyed.to_string());
-        m.insert("show_deleted".to_string(), self.show_deleted.to_string());
-        m.insert("show_value".to_string(), self.show_value.to_string());
-        m.insert("show_pub_key".to_string(), self.show_pub_key.to_string());
+        if let Some(ref v) = self.view {
+            m.insert("view".to_string(), v.to_string());
+        }
+        if let Some(ref v) = self.show_destroyed {
+            m.insert("show_destroyed".to_string(), v.to_string());
+        }
+        if let Some(ref v) = self.show_deleted {
+            m.insert("show_deleted".to_string(), v.to_string());
+        }
+        if let Some(ref v) = self.show_value {
+            m.insert("show_value".to_string(), v.to_string());
+        }
+        if let Some(ref v) = self.show_pub_key {
+            m.insert("show_pub_key".to_string(), v.to_string());
+        }
     }
 }
 
@@ -86,18 +96,23 @@ pub struct ListSobjectsParams {
     pub pkcs11_label: Option<String>,
     pub pkcs11_id: Option<Blob>,
     pub obj_type: Option<ObjectType>,
+    #[serde(default)]
     pub limit: Option<usize>,
+    #[serde(default)]
     pub offset: Option<usize>,
     #[serde(flatten)]
     pub sort: Option<SobjectSort>,
+    #[serde(default)]
     pub compliant_with_policies: Option<bool>,
     #[serde(flatten)]
     pub custom_metadata: Option<CustomMetadata>,
+    #[serde(default)]
     pub with_metadata: Option<bool>,
-    pub show_destroyed: bool,
-    pub show_deleted: bool,
-    pub show_value: bool,
-    pub show_pub_key: bool,
+    pub show_destroyed: Option<bool>,
+    pub show_deleted: Option<bool>,
+    pub show_value: Option<bool>,
+    pub show_pub_key: Option<bool>,
+    pub show_kcv: Option<bool>,
     #[serde(default)]
     pub filter: Option<String>
 }
@@ -136,20 +151,25 @@ impl UrlEncode for ListSobjectsParams {
         if let Some(ref v) = self.with_metadata {
             m.insert("with_metadata".to_string(), v.to_string());
         }
-        m.insert("show_destroyed".to_string(), self.show_destroyed.to_string());
-        m.insert("show_deleted".to_string(), self.show_deleted.to_string());
-        m.insert("show_value".to_string(), self.show_value.to_string());
-        m.insert("show_pub_key".to_string(), self.show_pub_key.to_string());
+        if let Some(ref v) = self.show_destroyed {
+            m.insert("show_destroyed".to_string(), v.to_string());
+        }
+        if let Some(ref v) = self.show_deleted {
+            m.insert("show_deleted".to_string(), v.to_string());
+        }
+        if let Some(ref v) = self.show_value {
+            m.insert("show_value".to_string(), v.to_string());
+        }
+        if let Some(ref v) = self.show_pub_key {
+            m.insert("show_pub_key".to_string(), v.to_string());
+        }
+        if let Some(ref v) = self.show_kcv {
+            m.insert("show_kcv".to_string(), v.to_string());
+        }
         if let Some(ref v) = self.filter {
             m.insert("filter".to_string(), v.to_string());
         }
     }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Metadata {
-    pub total_count: usize,
-    pub filtered_count: usize
 }
 
 /// Request to compute digest of a key.
@@ -218,7 +238,7 @@ pub enum SobjectEncoding {
 /// Request to rekey a security object
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SobjectRekeyRequest {
-    pub deactivate_rotated_key: bool,
+    pub deactivate_rotated_key: Option<bool>,
     #[serde(flatten)]
     pub dest: SobjectRequest
 }
@@ -229,6 +249,15 @@ pub struct SobjectRequest {
     pub activation_date: Option<Time>,
     #[serde(default)]
     pub aes: Option<AesOptions>,
+    /// Does this key come from an HSM that allows hashes over data for sign operations?
+    #[serde(default)]
+    pub allow_sign_hash: Option<bool>,
+    #[serde(default)]
+    pub aria: Option<AriaOptions>,
+    #[serde(default)]
+    pub bip32: Option<Bip32Options>,
+    #[serde(default)]
+    pub bls: Option<BlsOptions>,
     #[serde(default)]
     pub custom_metadata: Option<HashMap<String,String>>,
     #[serde(default)]
@@ -244,15 +273,21 @@ pub struct SobjectRequest {
     #[serde(default)]
     pub dsa: Option<DsaOptions>,
     #[serde(default)]
+    pub eckcdsa: Option<EcKcdsaOptions>,
+    #[serde(default)]
     pub elliptic_curve: Option<EllipticCurve>,
     #[serde(default)]
     pub enabled: Option<bool>,
+    #[serde(default)]
+    pub external: Option<ExternalKmsInfo>,
     #[serde(default)]
     pub fpe: Option<FpeOptions>,
     /// Key Access Justifications for GCP EKM.
     /// For more details: https://cloud.google.com/cloud-provider-access-management/key-access-justifications/docs/overview
     #[serde(default)]
-    pub google_access_reason_policy: Option<GoogleAccessReasonPolicy>,
+    pub google_access_reason_policy: Option<Removable<GoogleAccessReasonPolicy>>,
+    #[serde(default)]
+    pub kcdsa: Option<KcdsaOptions>,
     #[serde(default)]
     pub kcv: Option<String>,
     #[serde(default)]
@@ -743,7 +778,7 @@ impl Operation for OperationListSobjects {
     type PathParams = ();
     type QueryParams = ListSobjectsParams;
     type Body = ();
-    type Output = GetAllResponse;
+    type Output = ListSobjectsResponse;
 
     fn method() -> Method {
         Method::GET
@@ -754,7 +789,7 @@ impl Operation for OperationListSobjects {
     fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
 
 impl SdkmsClient {
-    pub async fn list_sobjects(&self, query_params: Option<&ListSobjectsParams>) -> Result<GetAllResponse> {
+    pub async fn list_sobjects(&self, query_params: Option<&ListSobjectsParams>) -> Result<ListSobjectsResponse> {
         self.execute::<OperationListSobjects>(&(), (), query_params).await
     }
 }

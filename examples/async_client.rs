@@ -3,10 +3,13 @@
 use sdkms::api_model::*;
 use sdkms::SdkmsClient;
 use sdkms::Error as SdkmsError;
-
+use std::env;
 use log::*;
+use once_cell::sync::Lazy;
 
-const MY_API_KEY: &'static str = "ASDVSD....";
+static MY_API_KEY: Lazy<String> = Lazy::new(|| {
+    env::var_os("FORTANIX_API_KEY").expect("API Key env var not set").into_string().unwrap()
+});
 const KEY_NAME: &'static str = "AES Key";
 
 #[tokio::main]
@@ -15,7 +18,7 @@ async fn main() -> Result<(), SdkmsError> {
 
     let client = SdkmsClient::builder()
         .with_api_endpoint("https://sdkms.fortanix.com")
-        .with_api_key(MY_API_KEY)
+        .with_api_key(&MY_API_KEY)
         .user_agent("sdkms-test-agent")
         .build()?;
 

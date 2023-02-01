@@ -173,13 +173,15 @@ impl UrlEncode for AppSort {
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct GetAppParams {
-    pub group_permissions: bool,
+    pub group_permissions: Option<bool>,
     pub role: Option<String>
 }
 
 impl UrlEncode for GetAppParams {
     fn url_encode(&self, m: &mut HashMap<String, String>) {
-        m.insert("group_permissions".to_string(), self.group_permissions.to_string());
+        if let Some(ref v) = self.group_permissions {
+            m.insert("group_permissions".to_string(), v.to_string());
+        }
         if let Some(ref v) = self.role {
             m.insert("role".to_string(), v.to_string());
         }
@@ -216,7 +218,7 @@ pub struct ListAppsParams {
     pub offset: Option<usize>,
     #[serde(flatten)]
     pub sort: AppSort,
-    pub group_permissions: bool,
+    pub group_permissions: Option<bool>,
     pub role: Option<AppRole>
 }
 
@@ -232,7 +234,9 @@ impl UrlEncode for ListAppsParams {
             m.insert("offset".to_string(), v.to_string());
         }
         self.sort.url_encode(m);
-        m.insert("group_permissions".to_string(), self.group_permissions.to_string());
+        if let Some(ref v) = self.group_permissions {
+            m.insert("group_permissions".to_string(), v.to_string());
+        }
         if let Some(ref v) = self.role {
             m.insert("role".to_string(), v.to_string());
         }

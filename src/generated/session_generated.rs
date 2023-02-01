@@ -8,6 +8,9 @@ use super::*;
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct AuthDiscoverParams {
+    /// The account for which the user wishes to discover authentication mechanisms.
+    /// Note that if specified, the user_email field in an AuthDiscoverRequest will
+    /// be ignored.
     pub acct_id: Option<Uuid>
 }
 
@@ -21,6 +24,9 @@ impl UrlEncode for AuthDiscoverParams {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AuthDiscoverRequest {
+    /// The email of the user wishing to log in. If the auth discovery
+    /// request also includes an acct_id query parameter, this field
+    /// will be effectively ignored.
     pub user_email: Option<String>
 }
 
@@ -71,16 +77,19 @@ pub enum AuthRequest {
     LdapBasicAuth {
         idp_id: Blob,
         email: String,
-        password: String
+        password: String,
+        /// The account where the IdP is configured. This should
+        /// only be used if attempting to self-provision into the
+        /// account. (Self-provisioning may not be possible for
+        /// existing users; they may need to be manually invited
+        /// into the account.)
+        acct_id: Option<Uuid>
     },
     AuthByAppName {
         acct_id: Uuid,
         name: String,
         password: String
     },
-    VcdAuthCode (
-        VcdCodeData
-    ),
     AwsIam {
         acct_id: Uuid,
         region: String,
@@ -95,7 +104,12 @@ pub struct AuthResponse {
     pub access_token: String,
     pub entity_id: Uuid,
     #[serde(default)]
-    pub challenge: Option<MfaChallengeResponse>
+    pub challenge: Option<U2fMfaChallengeResponse>,
+    /// Its presence indicates that 2FA is required for this
+    /// session and contains response that should be used with
+    /// `navigator.credentials.get()`
+    #[serde(default)]
+    pub fido2_assertion_options: Option<PublicKeyCredentialRequestOptions>
 }
 
 #[derive(PartialEq, Eq, Hash, Debug, Serialize, Deserialize, Clone)]
@@ -140,14 +154,6 @@ pub struct SelectAccountRequest {
 pub struct SelectAccountResponse {
     #[serde(default)]
     pub cookie: Option<String>
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct VcdCodeData {
-    pub idp_id: Blob,
-    pub token: String,
-    pub email: String,
-    pub org: String
 }
 
 pub struct OperationAuthDiscover;
@@ -389,28 +395,6 @@ impl Operation for OperationU2fAuth {
 impl SdkmsClient {
     pub async fn u2f_auth(&self, req: &U2fAuthRequest) -> Result<()> {
         self.execute::<OperationU2fAuth>(req, (), None).await
-    }
-}
-
-pub struct OperationU2fNewChallenge;
-#[allow(unused)]
-impl Operation for OperationU2fNewChallenge {
-    type PathParams = ();
-    type QueryParams = ();
-    type Body = ();
-    type Output = MfaChallengeResponse;
-
-    fn method() -> Method {
-        Method::POST
-    }
-    fn path(p: <Self::PathParams as TupleRef>::Ref, q: Option<&Self::QueryParams>) -> String {
-        format!("/sys/v1/session/config_2fa/new_challenge")
-    }
-    fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
-
-impl SdkmsClient {
-    pub async fn u2f_new_challenge(&self) -> Result<MfaChallengeResponse> {
-        self.execute::<OperationU2fNewChallenge>(&(), (), None).await
     }
 }
 

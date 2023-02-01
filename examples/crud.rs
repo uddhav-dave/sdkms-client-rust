@@ -1,15 +1,19 @@
 use rand::prelude::*;
 use sdkms::api_model::*;
 use sdkms::{Error as SdkmsError, SdkmsClient};
+use once_cell::sync::Lazy;
+use std::env;
 
-const MY_API_KEY: &'static str = "MDczMjNlNmUtYzliZC...";
+static MY_API_KEY: Lazy<String> = Lazy::new(|| {
+    env::var_os("FORTANIX_API_KEY").expect("API Key env var not set").into_string().unwrap()
+});
 
 fn main() -> Result<(), SdkmsError> {
     env_logger::init();
 
     let client = SdkmsClient::builder()
         .with_api_endpoint("https://sdkms.fortanix.com")
-        .with_api_key(MY_API_KEY)
+        .with_api_key(&MY_API_KEY)
         .build()?;
 
     let sobject_req = SobjectRequest {

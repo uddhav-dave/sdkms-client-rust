@@ -25,7 +25,6 @@ impl<O: Operation> fmt::Debug for PendingApproval<O> {
 }
 
 impl <O: Operation> PendingApproval<O> {
-
     pub fn from_request_id(request_id: Uuid) -> Self {
         PendingApproval(request_id, PhantomData)
     }
@@ -63,14 +62,6 @@ impl<O: Operation> Clone for PendingApproval<O> {
 }
 
 impl SdkmsClient {    
-    // pub async fn terminate(&mut self) -> Result<()> {
-    //     if let Some(Auth::Bearer(_)) = self.auth {
-    //         self.json_request(Method::POST, "/sys/v1/session/terminate", None::<&()>).await?;
-    //         self.auth = None;
-    //     }
-    //     Ok(())
-    // }
-
     pub async fn invoke_plugin_nice<I, O>(&self, id: &Uuid, req: &I) -> Result<O>
     where
         I: Serialize,
@@ -176,7 +167,7 @@ where
     let mut req = client.request(method.clone(), &url)?;
     let mut headers = head.unwrap_or(&HeaderMap::new()).clone();
     if let Some(auth) = auth {
-        headers.insert(AUTHORIZATION, auth.format_header());
+        headers.insert(AUTHORIZATION, auth.format_header()?);
     }
     if let Some(request_body) = body {
         headers.typed_insert(ContentType::json());
@@ -186,18 +177,18 @@ where
     req = req.headers(headers);
     match req.send().await {
         Err(e) => {
-            debug!("Error {} {}", method, url);
+            info!("Error {} {}", method, url);
             Err(Error::NetworkError(e))
         }
         Ok(res) if res.status().is_success() => {
-            debug!("{} {} {}", res.status().as_u16(), method, url);
+            info!("{} {} {}", res.status().as_u16(), method, url);
             let body = res.into_body();
             let body = aggregate(body).await.map_err(Into::<simple_hyper_client::Error>::into)?;
             let body: D = json_decode_reader(body.reader()).map_err(|err| Error::EncoderError(err))?;
             return Ok(body);
         }
         Ok(res) => {
-            debug!("{} {} {}", res.status().as_u16(), method, url);
+            info!("{} {} {}", res.status().as_u16(), method, url);
             let status = res.status();
             let body = aggregate(res).await.map_err(Into::<simple_hyper_client::Error>::into)?;
             let mut buffer = String::new();

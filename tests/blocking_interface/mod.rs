@@ -1,14 +1,16 @@
 use sdkms::{api_model::*, SdkmsClient, Error as SdkmsError};
+
 use crate::common;
 
-const SAMPLE_KEY: &'static str = "TestKey-123";
+const SAMPLE_KEY: &'static str = "TestKey-12";
 
-#[tokio::test]
-async fn test_encrypt_decrypt() -> Result<(), SdkmsError> {
+#[test]
+fn test_encrypt_decrypt() -> Result<(), SdkmsError> {
     let client = common::get_client().unwrap();
     let message = "hello, world!".to_string();
 
-    let sobject = check_create_aes_key(SAMPLE_KEY).await?;
+    let sobject = check_create_aes_key(SAMPLE_KEY)?;
+
     let encrypt_req = EncryptRequest {
         plain: message.as_bytes().to_owned().into(),
         alg: Algorithm::Aes,
@@ -18,7 +20,7 @@ async fn test_encrypt_decrypt() -> Result<(), SdkmsError> {
         ad: None,
         tag_len: None,
     };
-    let encrypt_resp = client.encrypt(&encrypt_req).await?;
+    let encrypt_resp = client.encrypt(&encrypt_req)?;
 
     let decrypt_req = DecryptRequest {
         cipher: encrypt_resp.cipher,
@@ -30,31 +32,21 @@ async fn test_encrypt_decrypt() -> Result<(), SdkmsError> {
         tag: None,
         masked: None,
     };
-    let decrypt_resp = client.decrypt(&decrypt_req).await?;
+    let decrypt_resp = client.decrypt(&decrypt_req)?;
     let plain = String::from_utf8(decrypt_resp.plain.into()).expect("valid utf8");
     assert_eq!(plain, message);
 
-    client.delete_sobject(&sobject.kid.unwrap()).await?;
+    client.delete_sobject(&sobject.kid.unwrap())?;
 
     Ok(())
 }
 
-#[tokio::test]
-async fn check_sessions() -> Result<(), SdkmsError> {
-    let client = get_client_session().await?;
-    assert!(client.expires_in().is_some());
-    Ok(())
+pub fn get_client_session() -> Result<SdkmsClient, SdkmsError> {
+    common::get_client()?
+        .authenticate_with_api_key(&common::get_api_key())
 }
 
-#[tokio::test]
-async fn check_client_config() -> Result<(), SdkmsError> {
-    let client = get_client_session().await?;
-    let configuration = client.get_client_configs().await;
-    debug_assert!(configuration.is_ok(), "Could not fetch Client Configuration. Error {:?}", configuration);
-    Ok(())
-}
-
-async fn check_create_aes_key(name: &'static str) -> Result<Sobject, SdkmsError> {
+fn check_create_aes_key(name: &'static str) -> Result<Sobject, SdkmsError> {
     let client = common::get_client()?;
     let sobject_req = SobjectRequest {
         name: Some(name.to_string()),
@@ -65,16 +57,11 @@ async fn check_create_aes_key(name: &'static str) -> Result<Sobject, SdkmsError>
         key_size: Some(256),
         ..Default::default()
     };
-    match client.create_sobject(&sobject_req).await {
+    match client.create_sobject(&sobject_req) {
         Ok(sobject) => Ok(sobject),
         Err(Error::Conflict(_)) => {
-            client.get_sobject(None, &SobjectDescriptor::Name(name.to_string())).await
+            client.get_sobject(None, &SobjectDescriptor::Name(name.to_string()))
         },
         Err(error) => Err(error),
     }
-}
-
-async fn get_client_session() -> Result<SdkmsClient, SdkmsError> {
-    common::get_client()?
-        .authenticate_with_api_key(&common::get_api_key()).await
 }

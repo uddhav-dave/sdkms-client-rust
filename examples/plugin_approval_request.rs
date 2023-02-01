@@ -4,16 +4,22 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::{thread, time};
 use uuid::Uuid;
+use once_cell::sync::Lazy;
+use std::env;
 
-const MY_API_KEY: &'static str = "ODZmODJhNTAtYmJjNy...";
-const PLUGIN_ID: &'static str = "121b272e-d963-...";
+static MY_API_KEY: Lazy<String> = Lazy::new(|| {
+    env::var_os("FORTANIX_API_KEY").expect("API Key env var not set").into_string().unwrap()
+});
+static PLUGIN_ID: Lazy<String> = Lazy::new(|| {
+    env::var_os("FORTANIX_PLUGIN_ID").expect("API Key env var not set").into_string().unwrap()
+});
 
 fn main() -> Result<(), SdkmsError> {
     env_logger::init();
 
     let client = SdkmsClient::builder()
         .with_api_endpoint("https://sdkms.fortanix.com")
-        .with_api_key(MY_API_KEY)
+        .with_api_key(&MY_API_KEY)
         .build()?;
 
     let input = PluginInput {
@@ -21,7 +27,7 @@ fn main() -> Result<(), SdkmsError> {
         hash_alg: DigestAlgorithm::Sha256,
     };
     let input = serde_json::to_value(&input)?;
-    let plugin_id = Uuid::from_str(PLUGIN_ID).expect("valid uuid");
+    let plugin_id = Uuid::from_str(&PLUGIN_ID).expect("valid uuid");
     let pa = client.request_approval_to_invoke_plugin(&plugin_id, &input, None)?;
     while pa.status(&client)? == ApprovalStatus::Pending {
         println!("Request is pending...");

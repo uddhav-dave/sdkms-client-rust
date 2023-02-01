@@ -6,7 +6,7 @@
 
 use super::*;
 
-#[derive(Debug, Eq, PartialEq, Copy, Serialize, Deserialize, Clone)]
+#[derive(Ord, PartialOrd, Debug, Eq, PartialEq, Hash, Copy, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum ActionType {
     Administrative,
@@ -15,6 +15,21 @@ pub enum ActionType {
     RunPlugin,
     Custom,
     Other
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct EsAuditLog {
+    pub action_type: ActionType,
+    pub actor_type: String,
+    pub message: String,
+    pub severity: SeverityLevel,
+    pub time: AuditLogTime,
+    pub acct_id: Uuid,
+    pub actor_id: Uuid,
+    pub group_ids: Vec<Uuid>,
+    pub object_id: Uuid,
+    pub client_ip: Option<IpAddr>,
+    pub response_time: Option<Duration>
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -40,6 +55,7 @@ pub struct LogsParams {
     pub actor_type: Option<Vec<String>>,
     pub actor_id: Option<Uuid>,
     pub object_id: Option<Uuid>,
+    pub previous_id: Option<Uuid>,
     pub severity: Option<Vec<SeverityLevel>>
 }
 
@@ -57,11 +73,11 @@ impl UrlEncode for LogsParams {
         if let Some(ref v) = self.range_to {
             m.insert("range_to".to_string(), v.to_string());
         }
-        if let Some(ref v) = self.action_type {
-            m.insert("action_type".to_string(), v.to_string());
+        if let Some(ref comma_seperated_type) = self.action_type {
+            comma_seperated_type.url_encode(m);
         }
-        if let Some(ref v) = self.actor_type {
-            m.insert("actor_type".to_string(), v.to_string());
+        if let Some(ref comma_seperated_type) = self.actor_type {
+            comma_seperated_type.url_encode(m);
         }
         if let Some(ref v) = self.actor_id {
             m.insert("actor_id".to_string(), v.to_string());
@@ -69,8 +85,11 @@ impl UrlEncode for LogsParams {
         if let Some(ref v) = self.object_id {
             m.insert("object_id".to_string(), v.to_string());
         }
-        if let Some(ref v) = self.severity {
-            m.insert("severity".to_string(), v.to_string());
+        if let Some(ref v) = self.previous_id {
+            m.insert("previous_id".to_string(), v.to_string());
+        }
+        if let Some(ref comma_seperated_type) = self.severity {
+            comma_seperated_type.url_encode(m);
         }
     }
 }

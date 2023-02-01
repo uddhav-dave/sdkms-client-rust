@@ -1,5 +1,5 @@
-#[allow(unused_imports)]
-#[allow(dead_code)]
+#![allow(unused_imports)]
+#![allow(dead_code)]
 
 use sdkms::{api_model::*, SdkmsClient, Error as SdkmsError};
 #[cfg(feature = "async")]
@@ -12,66 +12,49 @@ use std::env;
 use std::fs::File;
 use std::io::Read;
 use rand::prelude::*;
+use once_cell::sync::Lazy;
 
-struct EnvDetails {
-    endpoint: String, 
-    api_key: String,
-    certificate: Option<Certificate>
-}
+static API_ENDPOINT : Lazy<String> = Lazy::new(|| {
+    env::var_os("FORTANIX_API_ENDPOINT").expect("API Endpoint env var not set").into_string().unwrap()
+});
+static SSL_CERT: Lazy<Certificate> = Lazy::new(|| {
+    fetch_cert()
+});
+static API_KEY: Lazy<String> = Lazy::new(|| {
+    env::var_os("FORTANIX_API_KEY").expect("API Key env var not set").into_string().unwrap()
+});
 
-fn get_env_vars() -> EnvDetails {
-    let endpoint = match env::var_os("FORTANIX_API_ENDPOINT") {
-        Some(v) => v.into_string().unwrap(),
-        None => panic!("API endpoint not set")
-    };
-    let api_key = match env::var_os("FORTANIX_API_KEY") {
-        Some(v) => v.into_string().unwrap(),
-        None => panic!("API Key not set")
-    };
-    let certificate = match env::var_os("FORTANIX_SSL_CA_CERT") {
+//We want this function to panic if the environment variables are not set
+fn fetch_cert() -> Certificate {
+    match env::var_os("FORTANIX_SSL_CA_CERT") {
         Some(v) => {
             let mut cert_file = File::open(v).expect("invalid path to cert");
             let mut cert_raw = Vec::new();
             cert_file.read_to_end(&mut cert_raw).expect("Cannot read certificate");
             let certificate = Certificate::from_pem(&cert_raw).expect("Failed to read certificate");
-            Some(certificate)
+            certificate
         },
-        None => None
-    };
-    
-    EnvDetails{endpoint, api_key, certificate}
+        None => panic!("SSL certificate env var not set")
+    }
 }
 
 pub fn get_client() -> Result<SdkmsClient, SdkmsError> {
-    let env_details = get_env_vars();
-
     let mut ssl_builder = TlsConnector::builder();
-    if let Some(certificate) = env_details.certificate {
-        ssl_builder.add_root_certificate(certificate);
-    }
+    ssl_builder.add_root_certificate(SSL_CERT.clone());
     let ssl = ssl_builder.build()?;
     let connector = HttpsConnector::new(ssl.into());
     let client = HttpClient::with_connector(connector);
+
     SdkmsClient::builder()
         .with_http_client(client)
-        .with_api_endpoint(&env_details.endpoint)
-        .with_api_key(&env_details.api_key)
+        .with_api_endpoint(&API_ENDPOINT)
+        .with_api_key(&API_KEY)
         .user_agent("sdkms-test-agent")
         .build()
 }
 
-#[cfg(feature="async")]
-pub async fn get_client_session() -> Result<SdkmsClient, SdkmsError> {
-    let env_details = get_env_vars();
-    get_client()?
-        .authenticate_with_api_key(&env_details.api_key)
-        .await
-}
-
-#[cfg(not(feature="async"))]
-pub fn get_client_session() -> Result<SdkmsClient, SdkmsError> {
-    let env_details = get_env_vars();
-    get_client()?.authenticate_with_api_key(&env_details.api_key)
+pub(crate) fn get_api_key() -> String {
+    API_KEY.to_string()
 }
 
 pub fn sobject_to_string(s: &Sobject) -> String {

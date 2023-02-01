@@ -1,9 +1,10 @@
 /* Copyright (c) Fortanix, Inc.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+*
+* This Source Code Form is subject to the terms of the Mozilla Public
+* License, v. 2.0. If a copy of the MPL was not distributed with this
+* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use chrono::prelude::*;
 use serde::de::Error as DeserializeError;
 use serde::ser::Error as SerializeError;
 use serde::ser::SerializeSeq;
@@ -15,18 +16,39 @@ use std::convert::TryFrom;
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 use std::time::SystemTime;
-use std::{error, fmt, io};
+use std::{fmt, io};
 use time::format_description::FormatItem;
 use time::macros::format_description;
 use time::{OffsetDateTime, PrimitiveDateTime};
 #[cfg(feature = "native-tls")]
 use tokio_native_tls::native_tls;
 use uuid::Uuid;
+use rustc_serialize::base64::{ToBase64, URL_SAFE, FromBase64};
 use simple_hyper_client::hyper::Method;
 
-pub use crate::generated::*;
-use crate::operations::UrlEncode;
+mod fido;
+mod approval_request;
+mod app;
+mod crypto;
+mod error;
+mod key_mgmt;
+mod plugin;
+mod session;
+mod generated;
+mod log;
 
+pub use self::generated::*;
+pub use self::fido::*;
+pub use self::approval_request::*;
+pub use self::app::*;
+pub use self::crypto::*;
+pub use self::error::*;
+pub use self::key_mgmt::*;
+pub use self::plugin::*;
+pub use self::session::*;
+pub use self::log::*;
+
+use crate::operations::UrlEncode;
 /// Arbitrary binary data that is serialized/deserialized to/from base 64 string.
 #[derive(Default, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Blob(Vec<u8>);
@@ -42,6 +64,13 @@ impl From<String> for Blob {
         Blob(s.into_bytes())
     }
 }
+
+impl From<Base64<UrlSafe>> for Blob {
+    fn from(input: Base64<UrlSafe>) -> Self {
+        Blob(input.into_inner())
+    }
+}
+
 
 impl<'a> From<&'a str> for Blob {
     fn from(s: &str) -> Self {
@@ -141,7 +170,21 @@ impl<'de> Deserialize<'de> for Time {
     }
 }
 
+pub fn serialize_time_esformat<S: Serializer>(t: &Time, serializer: S) -> Result<S::Ok, S::Error> {
+    serializer.serialize_str(&t.to_esformat().ok_or_else(|| S::Error::custom("date/time value too far into the future"))?)
+}
+
+pub fn deserialize_time_esformat<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Time, D::Error> {
+    let s: String = Deserialize::deserialize(deserializer)?;
+    Time::from_esformat(&s).map_err(|e| match e {
+        InvalidTime::ParseError(_) => D::Error::custom(format!("invalid value \"{}\", expected date/time in ISO 8601 format", s)),
+        other => D::Error::custom(format!("invalid date/time \"{}\": {}", s, other)),
+    })
+}
+
 impl Time {
+    const ES_FORMAT: &'static str = "%Y-%m-%dT%H:%M:%SZ";
+
     pub fn now() -> Self {
         let t = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
@@ -155,6 +198,25 @@ impl Time {
         }
         OffsetDateTime::from_unix_timestamp(self.0 as i64).map_err(|_| TimeOutOfRange::TooLarge)
     }
+
+    pub fn from_esformat(time: &str) -> Result<Self, InvalidTime> {
+        let utc = Utc.datetime_from_str(time, Time::ES_FORMAT)?;
+        Time::try_from(utc.timestamp())
+    }
+
+    pub fn to_esformat(&self) -> Option<String> {
+        self.to_datetime().map(|utc| utc.format(Time::ES_FORMAT).to_string())
+    }
+
+    pub fn to_datetime(&self) -> Option<DateTime<Utc>> {
+        if self.0 > i64::MAX as u64 {
+            // otherwise we end up with a date before Unix epoch since
+            // `self.0 as i64` would be negative.
+            return None;
+        }
+        Utc.timestamp_opt(self.0 as i64, 0).single()
+    }
+
 }
 
 impl TryFrom<OffsetDateTime> for Time {
@@ -167,6 +229,39 @@ impl TryFrom<OffsetDateTime> for Time {
         Ok(Time(t.unix_timestamp() as u64))
     }
 }
+
+impl TryFrom<i64> for Time {
+    type Error = InvalidTime;
+
+    fn try_from(t: i64) -> Result<Self, Self::Error> {
+        if t < 0 { Err(InvalidTime::BeforeUnixEpoch) } else { Ok(Time(t as u64)) }
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum InvalidTime {
+    ParseError(chrono::ParseError),
+    BeforeUnixEpoch,
+    TooFarIntoFuture,
+}
+
+impl From<chrono::ParseError> for InvalidTime {
+    fn from(err: chrono::ParseError) -> Self {
+        InvalidTime::ParseError(err)
+    }
+}
+
+impl fmt::Display for InvalidTime {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            InvalidTime::ParseError(err) => write!(f, "{}", err),
+            InvalidTime::BeforeUnixEpoch => write!(f, "date/time values before 1970-01-01 00:00:00 UTC are not accepted"),
+            InvalidTime::TooFarIntoFuture => write!(f, "date/time value lies too far into the future"),
+        }
+    }
+}
+
+impl std::error::Error for InvalidTime {}
 
 #[derive(Debug)]
 pub enum TimeOutOfRange {
@@ -184,149 +279,7 @@ impl fmt::Display for TimeOutOfRange {
     }
 }
 
-impl error::Error for TimeOutOfRange {}
-
-#[derive(Debug)]
-pub enum Error {
-    Unauthorized(String),
-    Forbidden(String),
-    BadRequest(String),
-    Conflict(String),
-    Locked(String),
-    NotFound(String),
-    StatusCode(String),
-    EncoderError(serde_json::error::Error),
-    IoError(io::Error),
-    NetworkError(simple_hyper_client::Error),
-    #[cfg(feature = "native-tls")]
-    TlsError(native_tls::Error),
-}
-
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        "sdkms-client error"
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Error::NotFound(ref msg) => write!(fmt, "{}", msg),
-            Error::Unauthorized(ref msg) => write!(fmt, "{}", msg),
-            Error::Forbidden(ref msg) => write!(fmt, "{}", msg),
-            Error::BadRequest(ref msg) => write!(fmt, "{}", msg),
-            Error::Conflict(ref msg) => write!(fmt, "{}", msg),
-            Error::Locked(ref msg) => write!(fmt, "{}", msg),
-            Error::EncoderError(ref err) => write!(fmt, "{}", err),
-            Error::IoError(ref err) => write!(fmt, "{}", err),
-            Error::NetworkError(ref err) => write!(fmt, "{}", err),
-            #[cfg(feature = "native-tls")]
-            Error::TlsError(ref err) => write!(fmt, "{}", err),
-            Error::StatusCode(ref msg) => write!(fmt, "unexpected status code: {}", msg),
-        }
-    }
-}
-
-impl Error {
-    pub fn from_status(status: StatusCode, msg: String) -> Self {
-        match status {
-            StatusCode::UNAUTHORIZED => Error::Unauthorized(msg),
-            StatusCode::FORBIDDEN => Error::Forbidden(msg),
-            StatusCode::BAD_REQUEST => Error::BadRequest(msg),
-            StatusCode::CONFLICT => Error::Conflict(msg),
-            StatusCode::LOCKED => Error::Locked(msg),
-            StatusCode::NOT_FOUND => Error::NotFound(msg),
-            _ => Error::StatusCode(format!("{}\n{}", status.to_string(), msg)),
-        }
-    }
-}
-
-impl From<serde_json::error::Error> for Error {
-    fn from(error: serde_json::error::Error) -> Error {
-        Error::EncoderError(error)
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(error: io::Error) -> Error {
-        Error::IoError(error)
-    }
-}
-
-impl From<simple_hyper_client::Error> for Error {
-    fn from(error: simple_hyper_client::Error) -> Error {
-        Error::NetworkError(error)
-    }
-}
-
-#[cfg(feature = "native-tls")]
-impl From<native_tls::Error> for Error {
-    fn from(error: native_tls::Error) -> Error {
-        Error::TlsError(error)
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct BatchEncryptRequestItem {
-    pub kid: Uuid,
-    pub request: EncryptRequest,
-}
-
-pub type BatchEncryptRequest = Vec<BatchEncryptRequestItem>;
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct BatchDecryptRequestItem {
-    pub kid: Uuid,
-    pub request: DecryptRequest,
-}
-
-pub type BatchDecryptRequest = Vec<BatchDecryptRequestItem>;
-
-pub type BatchSignRequest = Vec<SignRequest>;
-
-pub type BatchVerifyRequest = Vec<VerifyRequest>;
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(untagged)]
-pub enum BatchResponseItem<T> {
-    Success { status: u16, body: T },
-    Error { status: u16, error: String },
-}
-
-impl<T> BatchResponseItem<T> {
-    pub fn status(&self) -> u16 {
-        match *self {
-            BatchResponseItem::Success { status, .. } | BatchResponseItem::Error { status, .. } => {
-                status
-            }
-        }
-    }
-}
-
-pub type BatchResponse<T> = Vec<BatchResponseItem<T>>;
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct AuthResponse {
-    pub token_type: String,
-    pub expires_in: u32,
-    pub access_token: String,
-    pub entity_id: Uuid,
-    pub challenge: Option<MfaChallengeResponse>,
-}
-
-#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
-pub struct ApprovableResult {
-    pub status: u16,
-    pub body: serde_json::Value,
-}
-
-impl ApprovableResult {
-    pub fn is_ok(&self) -> bool {
-        200 <= self.status && self.status < 300
-    }
-}
-
-pub type PluginOutput = serde_json::Value;
+impl std::error::Error for TimeOutOfRange {}
 
 #[derive(Serialize, Deserialize, Copy, Clone, Eq, PartialEq, Debug)]
 pub enum Order {
@@ -358,102 +311,6 @@ impl fmt::Display for Order {
 impl Default for Order {
     fn default() -> Self {
         Order::Ascending
-    }
-}
-
-// AppGroups contains a list of groups and optionally permissions granted to an app in each group.
-// In order to get information about the app permissions in each group, you should set
-// `group_permissions` to true in GetAppParams/ListAppsParams when making app-related requests.
-// When creating a new app, you should always specify desired permissions for each group.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AppGroups(HashMap<Uuid, Option<AppPermissions>>);
-
-impl Deref for AppGroups {
-    type Target = HashMap<Uuid, Option<AppPermissions>>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for AppGroups {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl From<HashMap<Uuid, Option<AppPermissions>>> for AppGroups {
-    fn from(d: HashMap<Uuid, Option<AppPermissions>>) -> Self {
-        AppGroups(d)
-    }
-}
-
-impl From<AppGroups> for HashMap<Uuid, Option<AppPermissions>> {
-    fn from(d: AppGroups) -> Self {
-        d.0
-    }
-}
-
-impl Serialize for AppGroups {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        self.0
-            .iter()
-            .map(|(id, perm)| (id, perm.unwrap_or(AppPermissions::empty())))
-            .collect::<HashMap<_, _>>()
-            .serialize(serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for AppGroups {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        #[derive(Deserialize)]
-        #[serde(untagged)]
-        enum S {
-            Modern(HashMap<Uuid, AppPermissions>),
-            Legacy(HashSet<Uuid>),
-        }
-        
-        Ok(AppGroups(match S::deserialize(deserializer)? {
-            S::Modern(map) => map.into_iter().map(|(id, perm)| (id, Some(perm))).collect(),
-            S::Legacy(set) => set.into_iter().map(|id| (id, None)).collect(),
-        }))
-    }
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
-pub struct PluginVersion {
-    pub major: u32,
-    pub minor: u32,
-}
-
-impl Serialize for PluginVersion {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let version = format!("{}.{}", self.major, self.minor);
-        serializer.serialize_str(&version)
-    }
-}
-
-impl<'de> Deserialize<'de> for PluginVersion {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let version: String = Deserialize::deserialize(deserializer)?;
-        let mut components = version.split(".");
-        let major = components
-            .next()
-            .ok_or_else(|| D::Error::custom("no major version found"))?
-            .parse::<u32>()
-            .map_err(D::Error::custom)?;
-        let minor = components
-            .next()
-            .ok_or_else(|| D::Error::custom("no minor version found"))?
-            .parse::<u32>()
-            .map_err(D::Error::custom)?;
-        Ok(PluginVersion { major, minor })
-    }
-}
-
-impl fmt::Display for PluginVersion {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, "{}.{}", self.major, self.minor)
     }
 }
 
@@ -539,7 +396,6 @@ mod custom_metadata_params_de {
 
 impl UrlEncode for CustomMetadata {
     fn url_encode(&self, m: &mut HashMap<String, String>) {
-        // m.extend(self.0.clone().iter()));
         for (key, value) in self.0.clone().into_iter() {
             m.insert(key, value);
         }
@@ -582,129 +438,60 @@ mod removable_serde_impl {
     }
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct GetAllResponse {
-    pub metadata: Option<Metadata>,
-    pub items: Vec<Sobject>,
-}
 
-impl GetAllResponse {
-    pub fn new(is_with_metadata: bool, total_cnt: usize, items: Vec<Sobject>) -> Self {
-        let metadata = if is_with_metadata {
-            Some(Metadata {
-                total_count: total_cnt,
-                filtered_count: items.len(),
-            })
-        } else {
-            None
-        };
 
-        GetAllResponse { metadata, items }
-    }
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Base64<T>(Vec<u8>, std::marker::PhantomData<T>);
 
-    // for backward compatibility, used by plugins
-    pub fn into_vector(self) -> Vec<Sobject> {
-        self.items
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct UrlSafe;
+
+impl<T> Base64<T> {
+    pub fn into_inner(self) -> Vec<u8> {
+        self.0
     }
 }
 
-impl Serialize for GetAllResponse {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        if self.metadata.is_some() {
-            let mut state = serializer.serialize_struct("GetAllResponse", 2)?;
-            state.serialize_field(
-                "metadata",
-                &self.metadata.as_ref().expect("expected metadta"),
-            )?;
-            state.serialize_field("items", &self.items)?;
-            return state.end();
-        } else {
-            let mut seq = serializer.serialize_seq(Some(self.items.len()))?;
-            for item in self.items.iter() {
-                seq.serialize_element(item)?;
-            }
-            return seq.end();
-        }
+impl<T> std::ops::Deref for Base64<T> {
+    type Target = [u8];
+
+    fn deref(&self) -> &[u8] {
+        &self.0
     }
 }
 
-// This is only required for provider/sdkms to deserialize data for clients
-impl<'de> Deserialize<'de> for GetAllResponse {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct GetAllResponseVisitor;
-
-        impl<'de> serde::de::Visitor<'de> for GetAllResponseVisitor {
-            type Value = GetAllResponse;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("GetAllResponseItem")
-            }
-
-            fn visit_seq<V>(self, mut seq: V) -> Result<GetAllResponse, V::Error>
-            where
-                V: serde::de::SeqAccess<'de>,
-            {
-                let mut items: Vec<Sobject> = Vec::new();
-                loop {
-                    let data = seq.next_element()?;
-                    if let Some(item) = data {
-                        items.push(item);
-                    } else {
-                        break;
-                    }
-                }
-                Ok(GetAllResponse {
-                    metadata: None,
-                    items,
-                })
-            }
-
-            fn visit_map<V>(self, mut map: V) -> Result<GetAllResponse, V::Error>
-            where
-                V: serde::de::MapAccess<'de>,
-            {
-                let mut metadata = None;
-                let mut items = Vec::new();
-                loop {
-                    if let Some(key) = map.next_key::<String>()? {
-                        match key.as_str() {
-                            "metadata" => metadata = map.next_value()?,
-                            "items" => items = map.next_value()?,
-                            other => {
-                                return Err(serde::de::Error::invalid_value(
-                                    serde::de::Unexpected::Str(&format!(
-                                        "unexpected key {}",
-                                        other
-                                    )),
-                                    &self,
-                                ))
-                            }
-                        }
-                    } else {
-                        break;
-                    }
-                }
-
-                Ok(GetAllResponse { items, metadata })
-            }
-        }
-
-        deserializer.deserialize_seq(GetAllResponseVisitor)
+impl<T> From<Vec<u8>> for Base64<T> {
+    fn from(data: Vec<u8>) -> Self {
+        Base64(data, std::marker::PhantomData)
     }
 }
 
-impl std::iter::IntoIterator for GetAllResponse {
-    type Item = Sobject;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
+impl ToString for Base64<UrlSafe> {
+    fn to_string(&self) -> String {
+        self.0.to_base64(URL_SAFE)
+    }
+}
 
-    fn into_iter(self) -> Self::IntoIter {
-        self.items.into_iter()
+impl<T> std::str::FromStr for Base64<T> {
+    type Err = rustc_serialize::base64::FromBase64Error;
+
+    fn from_str(string: &str) -> Result<Self, Self::Err> {
+        Ok(string.from_base64()?.into())
+    }
+}
+
+impl<T> Serialize for Base64<T> where Base64<T>: ToString {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.to_string().serialize(serializer)
+    }
+}
+
+impl<'de, T> Deserialize<'de> for Base64<T> {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let string = String::deserialize(deserializer)?;
+        Ok(Self::from_str(&string).map_err(|_| {
+            serde::de::Error::invalid_value(serde::de::Unexpected::Str(&string), &"base64 encoded string")
+        })?)
     }
 }
 
@@ -726,6 +513,12 @@ impl<'de> Deserialize<'de> for HyperHttpMethod {
         Ok(HyperHttpMethod(method))
     }
 }
+
+// pub trait Input: Sized + Send + Sync + 'static {
+//     type Model;
+//     fn parse(req: &mut Request) -> MaybeFuture<Result<Self>>;
+//     fn expect_body_complete_read() -> bool;
+// }
 
 #[cfg(test)]
 mod tests {

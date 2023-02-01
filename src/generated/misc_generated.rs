@@ -9,7 +9,7 @@ use super::*;
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct HealthParams {
     pub consistency: Option<String>,
-    pub check_queues: bool
+    pub check_queues: Option<bool>
 }
 
 impl UrlEncode for HealthParams {
@@ -17,7 +17,9 @@ impl UrlEncode for HealthParams {
         if let Some(ref v) = self.consistency {
             m.insert("consistency".to_string(), v.to_string());
         }
-        m.insert("check_queues".to_string(), self.check_queues.to_string());
+        if let Some(ref v) = self.check_queues {
+            m.insert("check_queues".to_string(), v.to_string());
+        }
     }
 }
 
@@ -69,7 +71,7 @@ pub struct LdapTestCredentials {
     #[serde(flatten)]
     pub id: LdapPrincipal,
     pub password: String,
-    pub account_role: Option<AccountRole>
+    pub account_role: Option<LdapAccountRole>
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]

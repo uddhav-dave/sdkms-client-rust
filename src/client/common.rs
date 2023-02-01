@@ -8,14 +8,17 @@ use crate::api_model::*;
 use headers::{HeaderValue, HeaderMap};
 use serde::Deserialize;
 use simple_hyper_client::hyper::header::*;
+
 #[cfg(feature = "async")]
 use simple_hyper_client::{Client as HttpClient};
 #[cfg(not(feature = "async"))]
 use simple_hyper_client::blocking::{Client as HttpClient};
+
 use simple_hyper_client::{Bytes};
 use uuid::Uuid;
 
 use std::convert::TryInto;
+use anyhow::Context;
 use std::fmt;
 use std::io::Read;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -39,18 +42,17 @@ impl Auth {
         Auth::Basic(base64::encode(format!("{}:{}", username, password)))
     }
 
-    pub fn format_header(&self) -> HeaderValue {
+    pub fn format_header(&self) -> Result<HeaderValue> {
         let value = match *self {
             Auth::Basic(ref basic) => format!("Basic {}", basic),
             Auth::Bearer(ref bearer) => format!("Bearer {}", bearer),
         };
         let bytes = Bytes::from(value);
-        // TODO: return error instead of expect
-        HeaderValue::from_maybe_shared(bytes).expect("invalid characters in auth header")
+        Ok(HeaderValue::from_maybe_shared(bytes).context("invalid characters in auth header")?)
     }
 }
 
-/// A builder for [`SdkmsClient`](./struct.SdkmsClient.html)
+/// A builder for [`SdkmsClient`]
 pub struct SdkmsClientBuilder {
     client: Option<HttpClient>,
     api_endpoint: Option<String>,
@@ -64,12 +66,13 @@ impl SdkmsClientBuilder {
         self.client = Some(client);
         self
     }
-    //This can be used to set a default user_agent 
-    pub fn user_agent<V>(mut self, value: V) -> Self 
+
+    /// This can be used to set a default user_agent
+    pub fn user_agent<V>(mut self, value: V) -> Self
     where
         V: TryInto<HeaderValue>,
     {
-        let mut header = HeaderMap::new();
+        let mut header = self.headers.unwrap_or(HeaderMap::new());
         match value.try_into() {
             Ok(value) => {
                 header.append(USER_AGENT, value);
@@ -79,23 +82,27 @@ impl SdkmsClientBuilder {
         self.headers = Some(header);
         self
     }
-    /// This can be used to set the API endpoint. Otherwise the [default endpoint](./constant.DEFAULT_API_ENDPOINT.html) is used.
+
+    /// This can be used to set the API endpoint. Otherwise the [default endpoint] is used.
     pub fn with_api_endpoint(mut self, api_endpoint: &str) -> Self {
         self.api_endpoint = Some(api_endpoint.to_owned());
         self
     }
+
     /// This can be used to make API calls without establishing a session.
     /// The API key will be passed along as HTTP Basic auth header on all API calls.
     pub fn with_api_key(mut self, api_key: &str) -> Self {
         self.auth = Some(Auth::from_api_key(api_key));
         self
     }
+
     /// This can be used to restore an established session.
     pub fn with_access_token(mut self, access_token: &str) -> Self {
         self.auth = Some(Auth::Bearer(access_token.to_owned()));
         self
     }
-    /// Build [`SdkmsClient`](./struct.SdkmsClient.html)
+
+    /// Build [`SdkmsClient`]
     pub fn build(self) -> Result<SdkmsClient> {
         let client = match self.client {
             Some(client) => client,
@@ -113,7 +120,7 @@ impl SdkmsClientBuilder {
                 panic!("You should either provide an HTTP Client or compile this crate with native-tls feature");
             }
         };
-        
+
         let header = match self.headers {
             None => None,
             _ => self.headers
@@ -132,9 +139,9 @@ impl SdkmsClientBuilder {
     }
 }
 
-/// A client session with SDKMS.
+/// A client session with DSM.
 ///
-/// REST APIs are exposed as methods on this type. Communication with SDKMS API endpoint is protected with TLS and this
+/// REST APIs are exposed as methods on this type. Communication with DSM API endpoint is protected with TLS and this
 /// type uses [`simple_hyper_client::blocking::Client`] along with [`tokio_native_tls::TlsConnector`] for HTTP/TLS.
 ///
 /// When making crypto API calls using an API key, it is possible to pass the API key as an HTTP Basic Authorization
@@ -153,7 +160,7 @@ impl SdkmsClientBuilder {
 /// - ...
 ///
 /// Also note that a user session is generally not permitted to call crypto APIs. In case your current authorization
-/// is not appropriate for a particular API call, you'll get an error to that effect from SDKMS.
+/// is not appropriate for a particular API call, you'll get an error to that effect from DSM.
 ///
 /// Certain APIs are "approvable", i.e. they can be subject to an approval policy. In such cases there are two methods
 /// on [`SdkmsClient`], e.g. [`encrypt()`] / [`request_approval_to_encrypt()`]. Whether or not you need to call

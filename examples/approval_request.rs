@@ -1,16 +1,22 @@
 use sdkms::api_model::*;
 use sdkms::{Error as SdkmsError, SdkmsClient};
 use std::{thread, time};
+use std::env;
+use once_cell::sync::Lazy;
 
-const MY_API_KEY: &'static str = "ODZmODJhNTAtYmJjNy...";
-const KEY_NAME: &'static str = "RSA Key 2";
+static MY_API_KEY: Lazy<String> = Lazy::new(|| {
+    env::var_os("FORTANIX_API_KEY").expect("API Key env var not set").into_string().unwrap()
+});
+static KEY_NAME: Lazy<String> = Lazy::new(|| {
+    env::var_os("FORTANIX_KEY_NAME").expect("API Key env var not set").into_string().unwrap()
+});
 
 fn main() -> Result<(), SdkmsError> {
     env_logger::init();
 
     let client = SdkmsClient::builder()
         .with_api_endpoint("https://sdkms.fortanix.com")
-        .with_api_key(MY_API_KEY)
+        .with_api_key(&MY_API_KEY)
         .build()?;
 
     let sign_req = SignRequest {

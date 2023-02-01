@@ -6,6 +6,35 @@
 
 use super::*;
 
+/// This represents the authenticator's response to a client’s request
+/// for the creation of a new public key credential. It contains
+/// information about the new credential that can be used to identify
+/// it for later use, and metadata that can be used by the WebAuthn
+/// Relying Party to assess the characteristics of the credential during
+/// registration.
+///
+/// <https://www.w3.org/TR/webauthn-2/#iface-authenticatorattestationresponse>
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthenticatorAttestationResponse {
+    /// Base64url of [crate::fido2::models::CollectedClientData] in JSON form.
+    #[serde(rename = "clientDataJSON")]
+    pub client_data_json: Base64<UrlSafe>,
+    /// Values obtained from `AuthenticatorAttestationResponse.getTransports()`.
+    /// Webauthn spec recommends RP to store it and user them along with
+    /// `allowCredentials` while authentication ceremony.
+    pub get_transports: Option<Vec<AuthenticatorTransport>>,
+    /// Base64url of [crate::fido2::models::AttestationObject].
+    ///
+    /// See in order:
+    /// <https://www.w3.org/TR/webauthn-2/#dom-authenticatorattestationresponse-attestationobject>
+    /// <https://www.w3.org/TR/webauthn-2/#sctn-attestation>
+    /// <https://www.w3.org/TR/webauthn-2/#sctn-defined-attestation-formats>
+    ///
+    /// Currently, only U2F is supported, others will be rejected.
+    pub attestation_object: Base64<UrlSafe>
+}
+
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub struct ConfirmEmailRequest {
     pub confirm_token: String
@@ -16,10 +45,58 @@ pub struct ConfirmEmailResponse {
     pub user_email: String
 }
 
+/// This contains the request for adding a FIDO device
+/// to user's data.
+/// Initially, `POST /sys/v1/session/config_2fa/new_challenge` needs
+/// to be called with protocol set to `fido2` and using that data,
+/// `navigator.credentials.create()` is called in the frontend.
+/// The data returned by `create` is sent in this request. The data
+/// sent back here creates a new FIDO2 device for the user after
+/// the payload is verified as per the rules stated in webauthn doc.
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FidoAddDeviceRequest {
+    /// A user friendly name for the device.
+    pub name: String,
+    /// Result of calling `navigator.credentials.create()` with the
+    /// data obtained from `new_challenge` API.
+    pub attestation_result: PublicKeyCredential<AuthenticatorAttestationResponse>
+}
+
 /// Initiate password reset sequence.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ForgotPasswordRequest {
     pub user_email: String
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct GetUserPermissionsParams {
+    /// If `true`, implied permissions are added in the output. For example, if
+    /// permission A implies permission B, and the user has permission A, the
+    /// output will include both A and B if this is set to `true`. If this is
+    /// set to `false`, B will only be returned if it was assigned to the user
+    /// directly.
+    pub with_implied: Option<bool>
+}
+
+impl UrlEncode for GetUserPermissionsParams {
+    fn url_encode(&self, m: &mut HashMap<String, String>) {
+        if let Some(ref v) = self.with_implied {
+            m.insert("with_implied".to_string(), v.to_string());
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GetUserPermissionsResponse {
+    /// User's permissions in the account.
+    pub account: AccountPermissions,
+    /// User's permissions in all groups. Note that this will only be returned
+    /// if the user has one or more all-groups roles.
+    #[serde(default)]
+    pub all_groups: Option<GroupPermissions>,
+    /// User's permissions in groups.
+    pub groups: HashMap<Uuid,GroupPermissions>
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -48,6 +125,29 @@ impl UrlEncode for ListUsersParams {
         }
         self.sort.url_encode(m);
     }
+}
+
+/// Request to delete a FIDO device.
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
+pub struct MfaDelDeviceRequest {
+    /// Name of the FIDO device to delete.
+    pub name: String
+}
+
+/// A FIDO device that may be used for second factor authentication.
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
+pub struct MfaDevice {
+    /// Name given to the FIDO device.
+    pub name: String
+}
+
+/// Request to rename a FIDO device.
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
+pub struct MfaRenameDeviceRequest {
+    /// Old name of FIDO device.
+    pub old_name: String,
+    /// New name of FIDO device.
+    pub new_name: String
 }
 
 /// Request to change user's password.
@@ -104,25 +204,6 @@ pub struct U2fAddDeviceRequest {
     pub version: String
 }
 
-/// Request to delete a U2F device.
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
-pub struct U2fDelDeviceRequest {
-    pub name: String
-}
-
-/// A U2f device that may be used for second factor authentication.
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
-pub struct U2fDevice {
-    pub name: String
-}
-
-/// Request to rename a U2F device.
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
-pub struct U2fRenameDeviceRequest {
-    pub old_name: String,
-    pub new_name: String
-}
-
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct User {
     pub account_role: UserAccountFlags,
@@ -132,6 +213,12 @@ pub struct User {
     pub description: Option<String>,
     #[serde(default)]
     pub email_verified: Option<bool>,
+    /// Explicit group assignments.
+    /// 
+    /// This is similar to `groups` field except that it does not include groups due to
+    /// all-groups roles. Use this field to find out which group assignments can be
+    /// changed using `mod_groups` and `del_groups` fields in user update API.
+    pub explicit_groups: HashMap<Uuid,UserGroupRole>,
     #[serde(default)]
     pub first_name: Option<String>,
     pub groups: HashMap<Uuid,UserGroupRole>,
@@ -143,26 +230,16 @@ pub struct User {
     pub last_logged_in_at: Option<Time>,
     #[serde(default)]
     pub last_name: Option<String>,
+    /// Mfa devices registered with the user
+    pub mfa_devices: Vec<MfaDevice>,
     #[serde(default)]
     pub new_email: Option<String>,
-    pub u2f_devices: Vec<U2fDevice>,
+    #[serde(default)]
+    pub self_provisioned: Option<bool>,
+    pub u2f_devices: Vec<MfaDevice>,
     #[serde(default)]
     pub user_email: Option<String>,
     pub user_id: Uuid
-}
-
-/// User's role and state in an account.
-pub use self::user_flags::UserAccountFlags;
-pub mod user_flags {
-    bitflags_set!{
-        pub struct UserAccountFlags: u64 {
-            const ACCOUNTADMINISTRATOR = 0x0000000000000001;
-            const ACCOUNTMEMBER = 0x0000000000000002;
-            const ACCOUNTAUDITOR = 0x0000000000000004;
-            const STATEENABLED = 0x0000000000000008;
-            const PENDINGINVITE = 0x0000000000000010;
-        }
-    }
 }
 
 #[derive(Default, Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
@@ -171,12 +248,18 @@ pub struct UserRequest {
     pub account_role: Option<UserAccountFlags>,
     #[serde(default)]
     pub add_groups: Option<HashMap<Uuid,UserGroupRole>>,
+    /// FIDO devices to add. Only one device can be added at present.
+    #[serde(default)]
+    pub add_mfa_devices: Option<Vec<FidoAddDeviceRequest>>,
     #[serde(default)]
     pub add_u2f_devices: Option<Vec<U2fAddDeviceRequest>>,
     #[serde(default)]
     pub del_groups: Option<HashMap<Uuid,UserGroupRole>>,
+    /// Mfa devices to delete
     #[serde(default)]
-    pub del_u2f_devices: Option<Vec<U2fDelDeviceRequest>>,
+    pub del_mfa_devices: Option<Vec<MfaDelDeviceRequest>>,
+    #[serde(default)]
+    pub del_u2f_devices: Option<Vec<MfaDelDeviceRequest>>,
     #[serde(default)]
     pub description: Option<String>,
     #[serde(default)]
@@ -187,8 +270,11 @@ pub struct UserRequest {
     pub last_name: Option<String>,
     #[serde(default)]
     pub mod_groups: Option<HashMap<Uuid,UserGroupRole>>,
+    /// Mfa devices to rename
     #[serde(default)]
-    pub rename_u2f_devices: Option<Vec<U2fRenameDeviceRequest>>,
+    pub rename_mfa_devices: Option<Vec<MfaRenameDeviceRequest>>,
+    #[serde(default)]
+    pub rename_u2f_devices: Option<Vec<MfaRenameDeviceRequest>>,
     #[serde(default)]
     pub user_email: Option<String>,
     #[serde(default)]
@@ -421,6 +507,28 @@ impl Operation for OperationGetUserAccounts {
 impl SdkmsClient {
     pub async fn get_user_accounts(&self) -> Result<HashMap<Uuid,UserAccountFlags>> {
         self.execute::<OperationGetUserAccounts>(&(), (), None).await
+    }
+}
+
+pub struct OperationGetUserPermissions;
+#[allow(unused)]
+impl Operation for OperationGetUserPermissions {
+    type PathParams = ();
+    type QueryParams = GetUserPermissionsParams;
+    type Body = ();
+    type Output = GetUserPermissionsResponse;
+
+    fn method() -> Method {
+        Method::GET
+    }
+    fn path(p: <Self::PathParams as TupleRef>::Ref, q: Option<&Self::QueryParams>) -> String {
+        format!("/sys/v1/users/permissions?{q}", q = q.encode())
+    }
+    fn to_body(body: &Self::Body) -> Option<serde_json::Value> { None }}
+
+impl SdkmsClient {
+    pub async fn get_user_permissions(&self, query_params: Option<&GetUserPermissionsParams>) -> Result<GetUserPermissionsResponse> {
+        self.execute::<OperationGetUserPermissions>(&(), (), query_params).await
     }
 }
 

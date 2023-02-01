@@ -6,21 +6,26 @@
 
 use super::*;
 
-/// Mechanism to use for key agreement.
+/// Options to use for key agreement mechanism.
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum AgreeKeyMechanism {
+    /// Diffie-Hellman key exchange mechanism
     DiffieHellman
 }
 
-/// Request to perform key agreement.
+/// Request body to perform key agreement.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AgreeKeyRequest {
+    /// Activation date of the agreed key
     #[serde(default)]
     pub activation_date: Option<Time>,
+    /// Deactivation date of the agreed key
     #[serde(default)]
     pub deactivation_date: Option<Time>,
+    /// Identifier of the private key used for agreement
     pub private_key: SobjectDescriptor,
+    /// Identifier of the public key used for agreement
     pub public_key: SobjectDescriptor,
     /// Mechanism to use for key derivation.
     pub mechanism: AgreeKeyMechanism,
@@ -36,7 +41,9 @@ pub struct AgreeKeyRequest {
     pub key_type: ObjectType,
     /// Key size in bits. If less than the output size of the algorithm, the secret's most-significant bits will be truncated.
     pub key_size: u32,
-    pub enabled: bool,
+    /// Whether the agreed key should have cryptographic operations enabled
+    pub enabled: Option<bool>,
+    /// Description of the agreed key
     #[serde(default)]
     pub description: Option<String>,
     /// User-defined metadata for this key stored as key-value pairs.
@@ -47,48 +54,54 @@ pub struct AgreeKeyRequest {
     /// provide an empty array, all key operations will be disabled.
     #[serde(default)]
     pub key_ops: Option<KeyOperations>,
+    /// State of the agreed key
     #[serde(default)]
     pub state: Option<SobjectState>,
     /// If set to true, the resulting key will be transient.
-    pub transient: bool
+    pub transient: Option<bool>
 }
 
-/// Finalize a multi-part decryption.
+/// Request body to finalise a multi-part decryption.
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct DecryptFinalRequest {
+    /// Identifier of the sobject used for finalizing multi-part decryption
     #[serde(default)]
     pub key: Option<SobjectDescriptor>,
+    /// Current state of the encrypted cipher
     pub state: Blob,
-    /// Tag is only applicable when using GCM mode.
+    /// Tag value of the encrypted cipher. Only applicable when using GCM mode.
     #[serde(default)]
     pub tag: Option<Blob>
 }
 
-/// Final result of a multi-part decryption.
+/// Final response body of a multi-part decryption.
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct DecryptFinalResponse {
+    /// Decrypted bytes
     pub plain: Blob
 }
 
-/// Initialize multi-part decryption.
+/// Request body to initialize multi-part decryption.
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct DecryptInitRequest {
+    /// Identifier of the sobject used for initializing multi-part decryption
     #[serde(default)]
     pub key: Option<SobjectDescriptor>,
+    /// Algorithm used for multi-part decryption
     #[serde(default)]
     pub alg: Option<Algorithm>,
-    /// Mode is required for symmetric algorithms.
+    /// Mode of multi-part decryption. Required for symmetric algorithms.
     #[serde(default)]
     pub mode: Option<CipherMode>,
-    /// Initialization vector is required for symmetric algorithms.
+    /// Initialization vector. Required for symmetric algorithms.
     #[serde(default)]
     pub iv: Option<Blob>,
-    /// Authenticated data is only applicable when using GCM mode.
+    /// Authenticated data. Only applicable when using GCM mode.
     #[serde(default)]
     pub ad: Option<Blob>
 }
 
-/// Result of initializing multi-part decryption.
+/// Response body for initializing multi-part decryption.
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct DecryptInitResponse {
     /// The key id is returned for non-transient keys.
@@ -98,21 +111,24 @@ pub struct DecryptInitResponse {
     pub state: Blob
 }
 
-/// A request to decrypt data using a symmetric or asymmetric key.
+/// Request body to decrypt data using a symmetric or asymmetric key.
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct DecryptRequest {
+    /// Reference to the sobject used for decryption
     #[serde(default)]
     pub key: Option<SobjectDescriptor>,
+    /// Algorithm to be used for decryption
     #[serde(default)]
     pub alg: Option<Algorithm>,
+    /// Encrypted bytes
     pub cipher: Blob,
-    /// Mode is required for symmetric algorithms.
+    /// Mode of decryption. Applicable for symmetric algorithms.
     #[serde(default)]
     pub mode: Option<CryptMode>,
-    /// Initialization vector is required for symmetric algorithms.
+    /// Initialization vector. Applicable for symmetric algorithms.
     #[serde(default)]
     pub iv: Option<Blob>,
-    /// Authenticated data is only applicable when using GCM mode.
+    /// Authenticated data. Only applicable when using GCM mode.
     #[serde(default)]
     pub ad: Option<Blob>,
     /// Tag is only applicable when using GCM mode.
@@ -126,50 +142,63 @@ pub struct DecryptRequest {
     pub masked: Option<bool>
 }
 
-/// Result of a decryption.
+/// Reponse body of POST /crypto/v1/decrypt
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct DecryptResponse {
     /// The key id of the key used to decrypt. Returned for non-transient keys.
     #[serde(default)]
     pub kid: Option<Uuid>,
+    /// Decrypted bytes
     pub plain: Blob
 }
 
-/// Multi-part decryption request.
+/// Request body for multi-part decryption.
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct DecryptUpdateRequest {
+    /// Identifier of the sobject used for multi-part decryption
     #[serde(default)]
     pub key: Option<SobjectDescriptor>,
+    /// Encrypted bytes
     pub cipher: Blob,
+    /// Currrent state of the encrypted cipher
     pub state: Blob
 }
 
-/// Result of multi-part decryption.
+/// Reponse body of multi-part decryption.
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct DecryptUpdateResponse {
+    /// Decrypted bytes
     pub plain: Blob,
+    /// Current state of the multi part decrypted object. 
     /// Opaque data, not to be interpreted or modified by the client and must be provided with next request.
     pub state: Blob
 }
 
-/// Encodes the mechanism to be used when deriving a new key from an existing key.
-/// Currently, the only supported mechanism is encrypting data to derive the new key.
-/// Other mechanisms may be added in the future.
+/// Mechanism to be used when deriving a new key from an existing key.
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum DeriveKeyMechanism {
     EncryptData (
         EncryptRequest
-    )
+    ),
+    Bip32MasterKey {
+        network: Bip32Network
+    },
+    Bip32HardenedChild {
+        index: u32
+    }
 }
 
-/// Request to derive a key.
+/// Request body to derive a key.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DeriveKeyRequest {
+    /// Activation date of the derived key
     #[serde(default)]
     pub activation_date: Option<Time>,
+    /// Deactivation date of the derived key
     #[serde(default)]
     pub deactivation_date: Option<Time>,
+    /// Identifier of the sobject from which new key will be derived
     #[serde(default)]
     pub key: Option<SobjectDescriptor>,
     /// Name of the derived key. Key names must be unique within an account.
@@ -188,6 +217,7 @@ pub struct DeriveKeyRequest {
     /// Whether the derived key should have cryptographic operations enabled.
     #[serde(default)]
     pub enabled: Option<bool>,
+    /// Description for derived key
     #[serde(default)]
     pub description: Option<String>,
     /// User-defined metadata for this key stored as key-value pairs.
@@ -198,6 +228,7 @@ pub struct DeriveKeyRequest {
     /// provide an empty array, all key operations will be disabled.
     #[serde(default)]
     pub key_ops: Option<KeyOperations>,
+    /// State of the derived key
     #[serde(default)]
     pub state: Option<SobjectState>,
     /// If set to true, the derived key will be transient.
@@ -208,61 +239,72 @@ pub struct DeriveKeyRequest {
 /// Request to compute the hash of arbitrary data.
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub struct DigestRequest {
+    /// Hash Algorithm to compute digest
     pub alg: DigestAlgorithm,
+    /// Raw binary data
     pub data: Blob
 }
 
-/// Result of a hash operation.
+/// Response body of a hash operation.
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct DigestResponse {
+    /// Hashed binary output
     pub digest: Blob
 }
 
-/// Finalize a multi-part encryption.
+/// Request body to finalize a multi-part encryption.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EncryptFinalRequest {
+    /// Reference to the sobject used for finalizing multi-part encryption
     #[serde(default)]
     pub key: Option<SobjectDescriptor>,
+    /// Last state of the encrypted cipher
     pub state: Blob,
+    /// Size of authentication tag.
     /// Tag length is only applicable when using GCM mode.
     #[serde(default)]
     pub tag_len: Option<usize>
 }
 
-/// Final result of a multi-part encryption.
+/// Final response body of a multi-part encryption.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EncryptFinalResponse {
+    /// Final encrypted bytes
     pub cipher: Blob,
     /// Tag is only returned for symmetric encryption with GCM mode.
     #[serde(default)]
     pub tag: Option<Blob>
 }
 
-/// Initialize multi-part encryption.
+/// Request body to initialize multi-part encryption.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EncryptInitRequest {
+    /// Reference to the sobject used for initializing multi-part encryption
     #[serde(default)]
     pub key: Option<SobjectDescriptor>,
+    /// Algorithm to be used for multipart encryption
     pub alg: Algorithm,
-    /// Mode is required for symmetric encryption.
+    /// Cipher mode of operation for symmetric multi-part encryption
     #[serde(default)]
     pub mode: Option<CipherMode>,
+    /// Initialization vector
     #[serde(default)]
     pub iv: Option<Blob>,
-    /// Authenticated data is only applicable when using GCM mode.
+    /// Authenticated data, required for AEAD algorithms
     #[serde(default)]
     pub ad: Option<Blob>
 }
 
-/// Result of initializing multi-part encryption.
+/// Response body of initializing multi-part encryption.
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct EncryptInitResponse {
     /// Key id is returned for non-transient keys.
     #[serde(default)]
     pub kid: Option<Uuid>,
-    /// Initialization vector is only returned for symmetric encryption.
+    /// Initialization vector. Only returned for symmetric encryption.
     #[serde(default)]
     pub iv: Option<Blob>,
+    /// Current state of the encrypted cipher. 
     /// Opaque data, not to be interpreted or modified by the client and must be provided with next request.
     pub state: Blob
 }
@@ -270,9 +312,12 @@ pub struct EncryptInitResponse {
 /// A request to encrypt data using a symmetric or asymmetric key.
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub struct EncryptRequest {
+    /// Reference to Sobject used for encryption
     #[serde(default)]
     pub key: Option<SobjectDescriptor>,
+    /// Encryption Algorithm
     pub alg: Algorithm,
+    /// Data bytes to be encrypted
     pub plain: Blob,
     /// Mode is required for symmetric algorithms.
     #[serde(default)]
@@ -288,12 +333,13 @@ pub struct EncryptRequest {
     pub tag_len: Option<usize>
 }
 
-/// Result of an encryption.
+/// Response of POST /crypto/v1/encrypt
 #[derive(Default, Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct EncryptResponse {
     /// Key id is returned for non-transient keys.
     #[serde(default)]
     pub kid: Option<Uuid>,
+    /// Encrypted bytes
     pub cipher: Blob,
     /// Initialization vector is only returned for symmetric encryption.
     #[serde(default)]
@@ -303,19 +349,24 @@ pub struct EncryptResponse {
     pub tag: Option<Blob>
 }
 
-/// Multi-part encryption request.
+/// Request body for continuing multi part encryption
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EncryptUpdateRequest {
+    /// Reference to the sobject used for continuing multi part encryption
     #[serde(default)]
     pub key: Option<SobjectDescriptor>,
+    /// Data bytes to be encrypted
     pub plain: Blob,
+    /// Last state of the encrypted cipher
     pub state: Blob
 }
 
-/// Result of multi-part encryption.
+/// Response body of multi-part encryption.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EncryptUpdateResponse {
+    /// Encrypted bytes object from multi-part flow
     pub cipher: Blob,
+    /// Current state of the encrypted cipher
     /// Opaque data, not to be interpreted or modified by the client and must be provided with next request.
     pub state: Blob
 }
@@ -327,61 +378,122 @@ pub enum KeyFormat {
     Pkcs8
 }
 
-/// Request for HMAC or CMAC operation.
+/// Request body for HMAC or CMAC operation.
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub struct MacRequest {
+    /// Identifier of the sobject used for HMAC/CMAC
     #[serde(default)]
     pub key: Option<SobjectDescriptor>,
+    /// Hash algorithm is required for HMAC.
     #[serde(default)]
     pub alg: Option<DigestAlgorithm>,
+    /// Raw binary data
     pub data: Blob
 }
 
-/// Result of HMAC or CMAC operation.
+/// Response body of HMAC or CMAC operation.
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct MacResponse {
+    /// Key id
     #[serde(default)]
     pub kid: Option<Uuid>,
-    /// This field is retained for backward compatibility in API for HMAC.
-    #[serde(default)]
-    pub digest: Option<Blob>,
-    /// The MAC generated for the input data.
+    /// MAC generated for the input data.
     pub mac: Blob
 }
 
-/// Request to perform key unwrapping.
+/// Options for mechanism to be used when transforming a key
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
-pub struct UnwrapKeyRequest {
+#[serde(rename_all = "snake_case")]
+pub enum TransformKeyMechanism {
+    Bip32WeakChild {
+        /// The index of a weak child is an integer between 0 and 2**31 - 1.
+        index: u32
+    }
+}
+
+/// Request body to transform a key.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TransformKeyRequest {
+    /// Activation date of the transformed key
+    #[serde(default)]
+    pub activation_date: Option<Time>,
+    /// Deactivation date of the transformed key
+    #[serde(default)]
+    pub deactivation_date: Option<Time>,
+    /// Identifier of the sobject which will be transformed
     #[serde(default)]
     pub key: Option<SobjectDescriptor>,
+    /// Name of the transformed key. Key names must be unique within an account.
+    pub name: Option<String>,
+    /// Group ID of the group that this security object should belong to. The user or
+    /// application creating this security object must be a member of this group. If no group is
+    /// specified, the default group for the requesting application will be used.
+    #[serde(default)]
+    pub group_id: Option<Uuid>,
+    /// Type of the transformed key.
+    pub key_type: ObjectType,
+    /// Mechanism to use for key transformation.
+    pub mechanism: TransformKeyMechanism,
+    /// Whether the transformed key should have cryptographic operations enabled.
+    #[serde(default)]
+    pub enabled: Option<bool>,
+    /// Description of the transformed key
+    #[serde(default)]
+    pub description: Option<String>,
+    /// User-defined metadata for this key stored as key-value pairs.
+    #[serde(default)]
+    pub custom_metadata: Option<HashMap<String,String>>,
+    /// Optional array of key operations to be enabled for this security object. If not
+    /// provided the service will provide a default set of key operations. Note that if you
+    /// provide an empty array, all key operations will be disabled.
+    #[serde(default)]
+    pub key_ops: Option<KeyOperations>,
+    /// State of the transformed key
+    #[serde(default)]
+    pub state: Option<SobjectState>,
+    /// If set to true, the transformed key will be transient.
+    #[serde(default)]
+    pub transient: Option<bool>
+}
+
+/// Request body to perform key unwrapping.
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
+pub struct UnwrapKeyRequest {
+    /// The wrapping key
+    #[serde(default)]
+    pub key: Option<SobjectDescriptor>,
+    /// Algorithm to be used for unwrapping
     pub alg: Algorithm,
-    /// Object type of the key being unwrapped.
+    /// Object type of the key being unwrapped
     pub obj_type: ObjectType,
+    /// RSA-specific options for unwrapping
     #[serde(default)]
     pub rsa: Option<RsaOptions>,
-    /// A Security Object previously wrapped with another key.
+    /// A serialized Security Object, previously wrapped with another key
     pub wrapped_key: Blob,
-    /// Mode is required for symmetric algorithms.
+    /// Mode is required for symmetric algorithms
     #[serde(default)]
     pub mode: Option<CryptMode>,
-    /// Initialization vector is required for symmetric algorithms.
+    /// Initialization vector is required for symmetric algorithms
     #[serde(default)]
     pub iv: Option<Blob>,
-    /// Authenticated data is only applicable if mode is GCM.
+    /// Authenticated data is only applicable if mode is GCM
     #[serde(default)]
     pub ad: Option<Blob>,
     /// Tag is required if mode is GCM.
     #[serde(default)]
     pub tag: Option<Blob>,
-    /// Name to be given to the resulting security object if persisted.
+    /// Name to be given to the resulting security object if persisted
     pub name: Option<String>,
     /// Group ID of the security group that the resulting security object should belong to. The user or
     /// application creating this security object must be a member of this group. If no group is
-    /// specified, the default group for the requesting application will be used.
+    /// specified, the default group for the requesting application will be used
     #[serde(default)]
     pub group_id: Option<Uuid>,
+    /// Whether the unwrap key should have cryptographic operations enabled
     #[serde(default)]
     pub enabled: Option<bool>,
+    /// Description of the unwrapped key
     #[serde(default)]
     pub description: Option<String>,
     /// User-defined metadata for the resulting key stored as key-value pairs.
@@ -392,30 +504,33 @@ pub struct UnwrapKeyRequest {
     /// an empty array, all key operations will be disabled.
     #[serde(default)]
     pub key_ops: Option<KeyOperations>,
+    /// Whether the unwrapped key should be a transient key
     #[serde(default)]
     pub transient: Option<bool>,
+    /// Checksum value of the wrapped key
     #[serde(default)]
     pub kcv: Option<String>
 }
 
-/// Rquest to verify a MAC value.
+/// Rquest body to verify a MAC value.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct VerifyMacRequest {
+    /// Identifier of the sobject used for MAC verification
     #[serde(default)]
     pub key: Option<SobjectDescriptor>,
     /// Algorithm is required for HMAC.
     #[serde(default)]
     pub alg: Option<DigestAlgorithm>,
+    /// Bytes value over which MAC needs to be verified
     pub data: Blob,
-    /// This field is deprecated. Instead you should use the `mac` field.
-    #[serde(default)]
-    pub digest: Option<Blob>,
-    /// Either `digest` or `mac` should be specified.
+    /// MAC to verify. Note that the previously available
+    /// field `digest` is deprecated and this should be used
+    /// instead.
     #[serde(default)]
     pub mac: Option<Blob>
 }
 
-/// Request to perform key wrapping.
+/// Request body to perform key wrapping.
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub struct WrapKeyRequest {
     /// The wrapping key.
@@ -427,10 +542,12 @@ pub struct WrapKeyRequest {
     /// Id of the key to be wrapped (legacy, mutually exclusive with `subject`).
     #[serde(default)]
     pub kid: Option<Uuid>,
+    /// Algorithm for key wrapping
     pub alg: Algorithm,
     /// Mode is required for symmetric algorithms.
     #[serde(default)]
     pub mode: Option<CryptMode>,
+    /// Initialization vector
     #[serde(default)]
     pub iv: Option<Blob>,
     /// Authenticated data is only applicable if mode is GCM.
@@ -439,6 +556,7 @@ pub struct WrapKeyRequest {
     /// Tag length is required when mode is GCM.
     #[serde(default)]
     pub tag_len: Option<usize>,
+    /// Key format for wrapping
     #[serde(default)]
     pub key_format: Option<KeyFormat>
 }
@@ -446,6 +564,7 @@ pub struct WrapKeyRequest {
 /// Result of key wrapping operation.
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct WrapKeyResponse {
+    /// Binary object of the wrapped key
     pub wrapped_key: Blob,
     /// Initialization vector is only returned for symmetric algorithms.
     #[serde(default)]
@@ -790,6 +909,33 @@ impl SdkmsClient {
         &self, req: &SignRequest,
         description: Option<String>) -> Result<PendingApproval<OperationSign>> {
         self.request_approval::<OperationSign>(req, (), None, description).await
+    }
+}
+
+pub struct OperationTransform;
+#[allow(unused)]
+impl Operation for OperationTransform {
+    type PathParams = ();
+    type QueryParams = ();
+    type Body = TransformKeyRequest;
+    type Output = Sobject;
+
+    fn method() -> Method {
+        Method::POST
+    }
+    fn path(p: <Self::PathParams as TupleRef>::Ref, q: Option<&Self::QueryParams>) -> String {
+        format!("/crypto/v1/transform")
+    }
+}
+
+impl SdkmsClient {
+    pub async fn transform(&self, req: &TransformKeyRequest) -> Result<Sobject> {
+        self.execute::<OperationTransform>(req, (), None).await
+    }
+    pub async fn request_approval_to_transform(
+        &self, req: &TransformKeyRequest,
+        description: Option<String>) -> Result<PendingApproval<OperationTransform>> {
+        self.request_approval::<OperationTransform>(req, (), None, description).await
     }
 }
 

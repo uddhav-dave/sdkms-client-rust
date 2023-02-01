@@ -3,3 +3,4 @@ mod async_interface;
 #[cfg(not(feature="async"))]
 mod blocking_interface;
 
+mod common;

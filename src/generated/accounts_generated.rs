@@ -11,8 +11,9 @@ pub struct Account {
     pub acct_id: Uuid,
     #[serde(default)]
     pub approval_policy: Option<AccountApprovalPolicy>,
-    #[serde(default)]
-    pub approval_request_expiry: Option<u64>,
+    /// Configurations for group-level or account-level approval requests.
+    #[serde(flatten)]
+    pub approval_request_settings: ApprovalRequestSettings,
     #[serde(default)]
     pub auth_config: Option<AuthConfig>,
     #[serde(default)]
@@ -42,6 +43,8 @@ pub struct Account {
     pub key_metadata_policy: Option<KeyMetadataPolicy>,
     #[serde(default)]
     pub log_bad_requests: Option<bool>,
+    #[serde(default)]
+    pub log_retention_days: Option<u64>,
     pub logging_configs: HashMap<Uuid,LoggingConfig>,
     #[serde(default)]
     pub max_app: Option<u32>,
@@ -81,13 +84,15 @@ pub struct Account {
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub struct AccountApprovalPolicy {
     pub policy: QuorumPolicy,
-    pub manage_groups: bool,
+    pub manage_groups: Option<bool>,
     /// When this is true, changes to the account authentication methods require approval.
     pub protect_authentication_methods: Option<bool>,
     /// When this is true, changes to the account cryptographic policy requires approval.
     pub protect_cryptographic_policy: Option<bool>,
     /// When this is true, changes to logging configuration require approval.
-    pub protect_logging_config: Option<bool>
+    pub protect_logging_config: Option<bool>,
+    /// When set to true, updating custom roles would require approval.
+    pub protect_custom_role_updates: Option<bool>
 }
 
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
@@ -98,8 +103,9 @@ pub struct AccountRequest {
     pub add_logging_configs: Option<Vec<LoggingConfigRequest>>,
     #[serde(default)]
     pub approval_policy: Option<AccountApprovalPolicy>,
-    #[serde(default)]
-    pub approval_request_expiry: Option<u64>,
+    /// Configurations for group-level or account-level approval requests.
+    #[serde(flatten, default)]
+    pub approval_request_settings: Option<ApprovalRequestSettingsRequest>,
     #[serde(default)]
     pub auth_config: Option<AuthConfig>,
     #[serde(default)]
@@ -129,6 +135,8 @@ pub struct AccountRequest {
     #[serde(default)]
     pub log_bad_requests: Option<bool>,
     #[serde(default)]
+    pub log_retention_days: Option<u64>,
+    #[serde(default)]
     pub mod_ldap: Option<HashMap<Uuid,AuthConfigLdap>>,
     #[serde(default)]
     pub mod_logging_configs: Option<HashMap<Uuid,LoggingConfigRequest>>,
@@ -152,6 +160,23 @@ pub struct AccountRequest {
     pub workspace_cse_config: Option<Removable<WorkspaceCseConfig>>
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum AccountSort {
+    ByAccountId {
+        order: Order
+    }
+}
+
+impl UrlEncode for AccountSort {
+    fn url_encode(&self, m: &mut HashMap<String, String>) {
+        match *self {
+            AccountSort::ByAccountId{ ref order } => {
+                m.insert("sort_by".to_string(), format!("account_id:{}", order));
+            }
+        }
+    }
+}
+
 #[derive(PartialEq, Eq, Debug, Default, Serialize, Deserialize, Clone)]
 pub struct AppCreditsUsage {
     pub generic: u32,
@@ -161,6 +186,57 @@ pub struct AppCreditsUsage {
     pub secrets_management: u32,
     pub aws_cloud_accounts: u32,
     pub azure_cloud_accounts: u32
+}
+
+/// Settings that apply to quorum approval requests.
+#[derive(Debug, Eq, PartialEq, Default, Serialize, Deserialize, Clone)]
+pub struct ApprovalRequestSettings {
+    /// The number of seconds after which an approval request expires. If not
+    /// specified, the cluster-wide setting will be used (30 days by default).
+    ///
+    /// Upon creation, an approval request's expiry date is (time of creation +
+    /// expiry period). However, when the request is approved by all its approvers,
+    /// its expiry date will be changed to (time of approval + expiry period).
+    #[serde(default)]
+    pub approval_request_expiry: Option<u64>,
+    /// Whether or not expired approval requests should be kept. (Obviously, any
+    /// pending requests that have expired are no longer actionable!)
+    ///
+    /// This is only applicable for onprem clusters; the field is ignored in SaaS
+    /// environments.
+    pub retain_expired_requests: Option<bool>,
+    /// Whether or not expiry of pending approval requests should be audit logged.
+    ///
+    /// This is only applicable for onprem clusters; the field is ignored in SaaS
+    /// environments.
+    pub log_expired_pending_requests: Option<bool>
+}
+
+/// A request struct for modifying settings that apply to quorum approval requests.
+#[derive(Debug, Eq, PartialEq, Default, Serialize, Deserialize, Clone)]
+pub struct ApprovalRequestSettingsRequest {
+    /// The number of seconds after which an approval request expires. Changing this
+    /// setting will not change the expiry of existing approval requests, but it may
+    /// still affect the "updated" expiry period assigned to existing requests upon
+    /// their approval (see below for details).
+    ///
+    /// Upon creation, an approval request's expiry date is (time of creation +
+    /// expiry period). However, when the request is approved by all its approvers,
+    /// its expiry date will be changed to (time of approval + expiry period).
+    pub approval_request_expiry: Option<u64>,
+    /// Whether or not expired approval requests should be kept. (Obviously, any
+    /// pending requests that have expired are no longer actionable!)
+    ///
+    /// This is only applicable for onprem clusters; the field is ignored in SaaS
+    /// environments.
+    pub retain_expired_requests: Option<bool>,
+    /// Whether or not expiry of pending approval requests should be audit logged.
+    /// Changing this setting will not retroactively apply to existing expired
+    /// approval requests.
+    ///
+    /// This is only applicable for onprem clusters; the field is ignored in SaaS
+    /// environments.
+    pub log_expired_pending_requests: Option<bool>
 }
 
 /// Account authentication settings.
@@ -173,7 +249,7 @@ pub struct AuthConfig {
     #[serde(default)]
     pub oauth: Option<AuthConfigOauth>,
     #[serde(default)]
-    pub ldap: HashMap<Uuid,AuthConfigLdap>,
+    pub ldap: Option<HashMap<Uuid,AuthConfigLdap>>,
     #[serde(default)]
     pub signed_jwt: Option<AuthConfigSignedJwt>,
     #[serde(default)]
@@ -245,7 +321,7 @@ impl UrlEncode for CountParams {
 
 #[derive(Debug, Eq, PartialEq, Copy, Serialize, Deserialize, Clone)]
 pub struct CustomAttributeSearchMetadata {
-    pub suggest: bool
+    pub suggest: Option<bool>
 }
 
 /// Custom subscription type
@@ -275,12 +351,25 @@ pub struct FreemiumSubscriptionType {
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct GetAccountParams {
-    pub with_totals: bool
+    pub with_totals: Option<bool>,
+    pub previous_id: Option<Uuid>,
+    pub limit: Option<usize>,
+    #[serde(flatten)]
+    pub sort_by: AccountSort
 }
 
 impl UrlEncode for GetAccountParams {
     fn url_encode(&self, m: &mut HashMap<String, String>) {
-        m.insert("with_totals".to_string(), self.with_totals.to_string());
+        if let Some(ref v) = self.with_totals {
+            m.insert("with_totals".to_string(), v.to_string());
+        }
+        if let Some(ref v) = self.previous_id {
+            m.insert("previous_id".to_string(), v.to_string());
+        }
+        if let Some(ref v) = self.limit {
+            m.insert("limit".to_string(), v.to_string());
+        }
+        self.sort_by.url_encode(m);
     }
 }
 
@@ -441,6 +530,8 @@ pub struct StackdriverLoggingConfigRequest {
 pub struct Subscription {
     #[serde(default)]
     pub memo: Option<String>,
+    #[serde(default)]
+    pub experimental_features: Option<SubscriptionExperimentalFeatures>,
     #[serde(flatten)]
     pub subscription_type: SubscriptionType
 }
@@ -453,6 +544,11 @@ pub struct SubscriptionChangeRequest {
     pub contact: Option<String>,
     #[serde(default)]
     pub comment: Option<String>
+}
+
+#[derive(Debug, Eq, PartialEq, Default, Serialize, Deserialize, Clone)]
+pub struct SubscriptionExperimentalFeatures {
+
 }
 
 /// Features in subscription

@@ -4,6 +4,17 @@ This repository contains a Rust client library for
 [Fortanix](https://fortanix.com/)
 [Self Defending Key Management Service](https://fortanix.com/products/sdkms/).
 
+# About
+
+This client library provides both Async, and blocking calls for DSM APIs(formerly known as SDKMS).
+Add `sdkms` in the dependencies section of your program's `Cargo.toml`.
+
+By passing `async` as feature to the dependency, library provides async API calls.
+[async_client](./examples/async_client.rs) provides sample implementation of async calls.
+
+If no feature is passed, library provides blocking API calls.
+See [examples](./examples) folder.
+
 # Contributing
 
 We gratefully accept bug reports and contributions from the community.

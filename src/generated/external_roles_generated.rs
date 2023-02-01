@@ -24,7 +24,7 @@ pub enum ExternalRoleKind {
     LdapGroup
 }
 
-#[derive(Copy, PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
 pub struct ExternalRoleMapping {
     #[serde(default)]
     pub users: Option<UserGroupRole>,
@@ -38,8 +38,6 @@ pub struct ExternalRoleRequest {
     pub add_groups: Option<HashMap<Uuid,ExternalRoleMapping>>,
     #[serde(default)]
     pub del_groups: Option<HashSet<Uuid>>,
-    #[serde(default)]
-    pub external_role_id: Option<Uuid>,
     #[serde(default)]
     pub kind: Option<ExternalRoleKind>,
     #[serde(default)]
